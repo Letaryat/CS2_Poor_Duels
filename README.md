@@ -6,7 +6,7 @@
     <p>Simple 1v1 duels gamemode for Counter-Strike2 written in CounterStrikeSharp.</p>
     <h2>
         <a href="https://discord.com/invite/mEmdyqM3Um" target="_blank"><img src="https://img.shields.io/badge/Discord%20Server-7289da?style=for-the-badge&logo=discord&logoColor=white" /></a>
-        <a href="https://ko-fi.com/letaryat" target="_blank"><img src="https://shields.io/badge/kofi-Buy_a_coffee-ff5f5f?logo=ko-fi&style=for-the-badgeKofi" /></a>
+        <a href="https://ko-fi.com/letaryat" target="_blank"><img src="https://img.shields.io/badge/Ko--fi-F16061?logo=ko-fi&logoColor=white&style=for-the-badge" /></a>
     </h2>
 </div>
 
