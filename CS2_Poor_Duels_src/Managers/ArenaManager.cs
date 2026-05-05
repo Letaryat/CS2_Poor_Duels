@@ -29,7 +29,7 @@ namespace CS2_Poor_Duels
                 )
                 .ToList();
 
-            var teleportDestinations = Utilities.FindAllEntitiesByDesignerName<CInfoTeleportDestination>("info_teleport_destination").ToList();
+            var teleportDestinations = Utilities.FindAllEntitiesByDesignerName<CInfoTeleportDestination>("info_teleport_destination").Cast<CBaseEntity>().ToList();
 
 
             var allSpawns = spawnPoints
@@ -81,8 +81,8 @@ namespace CS2_Poor_Duels
                         )
                         .ToList()
                 );
-
-                List<List<CInfoTeleportDestination>> grouped = GroupTeleportDestinationsByArena(teleportDestinations);
+                
+                List<List<CBaseEntity>> grouped = GroupSpawnsByArena(teleportDestinations);
 
                 foreach (var group in grouped)
                 {
@@ -153,55 +153,6 @@ namespace CS2_Poor_Duels
                 if (!added)
                 {
                     arenas.Add(new List<CBaseEntity> { spawn });
-                }
-            }
-
-            return arenas;
-        }
-
-        private static List<List<CInfoTeleportDestination>> GroupTeleportDestinationsByArena(List<CInfoTeleportDestination> teleportDestinations)
-        {
-            List<List<CInfoTeleportDestination>> arenas = new();
-            Dictionary<string, List<CInfoTeleportDestination>> grouped = new();
-
-            foreach (var entity in teleportDestinations)
-            {
-                if (entity == null || entity.AbsOrigin == null)
-                    continue;
-
-                var targetName = entity.Entity!.Name;
-
-                if (string.IsNullOrWhiteSpace(targetName))
-                    continue;
-
-                string lowered = targetName.ToLower();
-
-                if (!lowered.Contains("ct_") && !lowered.Contains("t_"))
-                    continue;
-
-                if (lowered.Contains("nav_") || lowered.Contains("walkable"))
-                    continue;
-
-                int arenaIndex = lowered.IndexOf("_arena_");
-
-                if (arenaIndex == -1)
-                    continue;
-
-                string arenaKey = lowered.Substring(arenaIndex + 1);
-
-                if (!grouped.ContainsKey(arenaKey))
-                {
-                    grouped[arenaKey] = new List<CInfoTeleportDestination>();
-                }
-
-                grouped[arenaKey].Add(entity);
-            }
-
-            foreach (var kvp in grouped)
-            {
-                if (kvp.Value.Count >= 2)
-                {
-                    arenas.Add(kvp.Value);
                 }
             }
 
