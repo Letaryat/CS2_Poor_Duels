@@ -12,7 +12,9 @@
 
 <div align="center">
     <h1>Video showcase</h1>
-[![CS2_Poor_Duels Youtube](http://img.youtube.com/vi/22hd4rVBVBI/0.jpg)](https://www.youtube.com/watch?v=22hd4rVBVBI "CS2_Poor_Duels Showcase")
+
+[![PoorDuels](https://img.youtube.com/vi/lnogEJGYVeA/0.jpg)](https://www.youtube.com/watch?v=lnogEJGYVeA)
+
 </div>
 
 
