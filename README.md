@@ -6,9 +6,15 @@
     <p>Simple 1v1 duels gamemode for Counter-Strike2 written in CounterStrikeSharp.</p>
     <h2>
         <a href="https://discord.com/invite/mEmdyqM3Um" target="_blank"><img src="https://img.shields.io/badge/Discord%20Server-7289da?style=for-the-badge&logo=discord&logoColor=white" /></a>
-        <a href="https://ko-fi.com/letaryat" target="_blank"><img src="https://img.shields.io/badge/Discord%20Server-7289da?style=for-the-badge&logo=discord&logoColor=white" /></a>
+        <a href="https://ko-fi.com/letaryat" target="_blank"><img src="https://shields.io/badge/kofi-Buy_a_coffee-ff5f5f?logo=ko-fi&style=for-the-badgeKofi" /></a>
     </h2>
 </div>
+
+<div align="center">
+    <h1>Video showcase</h1>
+[![CS2_Poor_Duels Youtube](http://img.youtube.com/vi/22hd4rVBVBI/0.jpg)](https://www.youtube.com/watch?v=22hd4rVBVBI "CS2_Poor_Duels Showcase")
+</div>
+
 
 ## [📌] Dependiencies
 - [Metamod](https://www.sourcemm.net/)
@@ -100,7 +106,7 @@
   "ConfigVersion": 1
 }
 ```
-#### [⚠️] Translations
+#### [🈂️] Translations
 There might be some annoying chat messages that not everyone may seem to like them. You can just remove them from translation file.
 
 **Before**
