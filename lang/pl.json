@@ -21,7 +21,7 @@
     "AdminTools_FinishedCustomSpawns": "{lime}Zapisano wszystkie spawny!",
     "AdminTools_Beams": "{orange}Lasery zostały wygenerowane!",
     "AdminTools_BeamsRemove": "{green}Lasery zostały usunięte!",
-    "AdminTools_TPPingOn": "Możesz użyć{lime}PING{default} aby teleportować się tam gdzie chcesz!",
+    "AdminTools_TPPingOn": "Możesz użyć {lime}PING{default} aby teleportować się tam gdzie chcesz!",
     "AdminTools_TPPingOff": "Od teraz {lime}PING{default} teleporty{default} są {lightred}wyłączone.",
     "AdminTools_SuccessFullTP": "{lime}Zostałeś pomyślnie teleportowany.",
     "Error": "{lightred}Coś poszło nie tak. {default}Zobacz logi lub zapytaj administratora.",

@@ -72,7 +72,7 @@ namespace CS2_Poor_Duels
                 // Cybershoke
             if (teleportDestinations.Count > 0)
             {
-                _plugin.PluginExtensions.DebugLogger("Uzywamy aren teleportDestinations");
+                _plugin.PluginExtensions.DebugLogger("We are using TeleportDestinations for this map.");
 
                 _plugin.CustomSpawnsManager.DisableAllSpawns(
                     Utilities.FindAllEntitiesByDesignerName<SpawnPoint>("info_player_terrorist")
