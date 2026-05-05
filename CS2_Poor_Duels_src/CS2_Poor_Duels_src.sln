@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CS2_Poor_Duels_src", "CS2_Poor_Duels_src.csproj", "{7BF23E9B-B882-11FA-A9E9-6AD0BEC93FA8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7BF23E9B-B882-11FA-A9E9-6AD0BEC93FA8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BF23E9B-B882-11FA-A9E9-6AD0BEC93FA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BF23E9B-B882-11FA-A9E9-6AD0BEC93FA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BF23E9B-B882-11FA-A9E9-6AD0BEC93FA8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5D00BF8D-8B43-4C00-95B5-1C0A3801B7AC}
+	EndGlobalSection
+EndGlobal
