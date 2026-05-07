@@ -103,6 +103,44 @@
       "css_pistols"
     ]
   },
+  "DuelRounds": [
+    {
+      "Name": "Rifle",
+      "primaryWeapon": "weapon_ak47",
+      "secondaryWeapon": "weapon_deagle",
+      "forcePrimary": false,
+      "forceSecondary": false,
+      "forceArmor": false,
+      "forceHelmet": false
+    },
+    {
+      "Name": "Pistol",
+      "primaryWeapon": "",
+      "secondaryWeapon": "weapon_deagle",
+      "forcePrimary": true,
+      "forceSecondary": false,
+      "forceArmor": false,
+      "forceHelmet": false
+    },
+    {
+      "Name": "AWP",
+      "primaryWeapon": "weapon_awp",
+      "secondaryWeapon": "weapon_deagle",
+      "forcePrimary": true,
+      "forceSecondary": false,
+      "forceArmor": false,
+      "forceHelmet": false
+    },
+    {
+      "Name": "Scout",
+      "primaryWeapon": "weapon_ssg08",
+      "secondaryWeapon": "weapon_deagle",
+      "forcePrimary": true,
+      "forceSecondary": false,
+      "forceArmor": false,
+      "forceHelmet": false
+    }
+  ],
   "RegisterAdminCommands": true,
   "DetailedDebugMode": false,
   "ConfigVersion": 1
