@@ -11,7 +11,7 @@ namespace CS2_Poor_Duels.Utils
         private CS2_Poor_DuelsPlugin _plugin = plugin;
         public void ExecConfig()
         {
-            Server.ExecuteCommand("execifexists leti1v1/leti1v1duels.cfg");
+            Server.ExecuteCommand("execifexists cs2_poor_duels/cs2_poor_duels.cfg");
         }
 
         public void KillServerCommandEnts()
