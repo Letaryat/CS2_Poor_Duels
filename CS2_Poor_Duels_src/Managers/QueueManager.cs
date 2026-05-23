@@ -36,7 +36,8 @@ namespace CS2_Poor_Duels
                 _WaitingQueue.Add(player);
                 _plugin.PluginExtensions!.DebugLogger($"Added {player.PlayerName} to queue (total: {_WaitingQueue.Count})");
 
-                PluginExtensions.SendChatMessage(_plugin, player, "AddedToQueue");
+                // Suppressed: chat spammed on every duel-end re-queue. Re-enable if gated to first add only.
+                // PluginExtensions.SendChatMessage(_plugin, player, "AddedToQueue");
 
                 _plugin.AddTimer(0.15f, () =>
                 {

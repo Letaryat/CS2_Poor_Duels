@@ -46,11 +46,12 @@ namespace CS2_Poor_Duels
 
             var aqquireMethod = hook.GetParam<AcquireMethod>(2);
 
-            var vdata = VirtualFunctions
-                .GetCSWeaponDataFromKeyFunc
-                .Invoke(-1, econ.ItemDefinitionIndex.ToString());
-
-            if (vdata == null) return HookResult.Continue;
+            // Resolve the weapon class name via our static map instead of
+            // VirtualFunctions.GetCSWeaponDataFromKeyFunc. That native call segfaults the
+            // server for non-weapon item def indexes (knife skins / equipment, e.g. 521, 526)
+            // and for some legitimate weapon indexes (e.g. 40 / ssg08) in this hook context.
+            if (!WeaponModels.DefIndexToClassName.TryGetValue(econ.ItemDefinitionIndex, out var classname))
+                return HookResult.Continue;
 
             if (player.IsBot && (aqquireMethod == AcquireMethod.Buy || aqquireMethod == AcquireMethod.BuyWithCtrl))
             {
@@ -66,7 +67,6 @@ namespace CS2_Poor_Duels
                 roundType = _plugin.Config.DuelRounds[playerArena!.roundType];
             }
 
-            var classname = vdata.Name;
             if (string.IsNullOrWhiteSpace(classname)) return HookResult.Continue;
 
             if (playerArena != null && roundType != null)
@@ -274,23 +274,27 @@ namespace CS2_Poor_Duels
                 _plugin.QueueManager!.AddPlayerToQueue(player);
             }
 
+            // Skip background DB load for bots/HLTV. The original `||` was a logical bug — it was
+            // true for every non-(bot && HLTV) case, so bots and HLTV both ran the DB lookup.
+            if (player.IsBot || player.IsHLTV) return HookResult.Continue;
+
             var sid = player.SteamID;
+            if (sid == 0) return HookResult.Continue;
 
-            if (!player.IsBot || !player.IsHLTV)
+            // Pass only the steamid into the background task. CCSPlayerController properties must
+            // only be accessed on the main game thread; capturing the controller and reading
+            // player.IsValid / player.SteamID from Task.Run can crash the server.
+            Task.Run(async () =>
             {
-                Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        await _plugin.PlayerManager!.AddPlayerToPreferencesList(player, sid);
-                    }
-                    catch (Exception error)
-                    {
-                        _plugin.PluginExtensions.DebugLogger($"Error with connectfull {error}");
-                    }
-                });
-            }
-
+                    await _plugin.PlayerManager!.AddPlayerToPreferencesList(sid);
+                }
+                catch (Exception error)
+                {
+                    _plugin.PluginExtensions!.DebugLogger($"Error with connectfull {error}");
+                }
+            });
 
             return HookResult.Continue;
         }

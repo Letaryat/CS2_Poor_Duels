@@ -13,18 +13,18 @@ namespace CS2_Poor_Duels
 
         public Dictionary<ulong, PlayerPreferences> _playerPreferences = new();
 
-        public async Task AddPlayerToPreferencesList(CCSPlayerController player, ulong steamid)
+        // Takes only the steamid (no CCSPlayerController): this method runs on a background thread via
+        // Task.Run in OnPlayerConnectFull, and CCSPlayerController properties must only be accessed on
+        // the main game thread. All player-state checks happen before Task.Run.
+        public async Task AddPlayerToPreferencesList(ulong steamid)
         {
-            if (player == null || !player.IsValid || player.IsHLTV) return;
-            if (_playerPreferences.ContainsKey(player.SteamID)) return;
+            if (steamid == 0) return;
+            if (_playerPreferences.ContainsKey(steamid)) return;
 
-            var sid = steamid;
-            if (sid == 0) return;
-
-            var playerInformation = await _plugin.DatabaseManager!.GetPlayerInformation(sid);
+            var playerInformation = await _plugin.DatabaseManager!.GetPlayerInformation(steamid);
             if (playerInformation == null) return;
 
-            _playerPreferences[sid] = playerInformation;
+            _playerPreferences[steamid] = playerInformation;
         }
         public void ChangePlayerTeam(CCSPlayerController player1, CCSPlayerController player2)
         {
