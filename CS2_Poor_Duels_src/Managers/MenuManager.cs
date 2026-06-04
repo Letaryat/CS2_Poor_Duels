@@ -145,12 +145,12 @@ namespace CS2_Poor_Duels
 
             // ToDo: What Round + How many round
 
-            menu.AddItem($"{(_plugin.Config.DuelRounds[_plugin.DuelManager!.PendingChallenges[player].RoundType].Name != null ? $"{_plugin.Localizer["DuelChallengeRound"]}: {_plugin.Config.DuelRounds[_plugin.DuelManager!.PendingChallenges[player].RoundType].Name}" : $"{_plugin.Localizer["DuelChallengeRoundSelect"]}")}", (pl, o) =>
+            menu.AddItem($"{(_plugin.Config.DuelRounds[_plugin.DuelManager!.PendingChallenges[player].RoundType].Name != null ? $"{_plugin.Localizer["DuelChallengeRound"]} {_plugin.Config.DuelRounds[_plugin.DuelManager!.PendingChallenges[player].RoundType].Name}" : $"{_plugin.Localizer["DuelChallengeRoundSelect"]}")}", (pl, o) =>
             {
                 DuelChallengeRoundType(player, menu);
             });
 
-            menu.AddItem($"{(_plugin.DuelManager!.PendingChallenges[player].MaxRounds != 0 ? $"{_plugin.Localizer["DuelChallengeNumberRounds"]}: {_plugin.DuelManager!.PendingChallenges[player].MaxRounds}" : $"{_plugin.Localizer["DuelChallengeNumberRoundsSelect"]}")}", (pl, o) =>
+            menu.AddItem($"{(_plugin.DuelManager!.PendingChallenges[player].MaxRounds != 0 ? $"{_plugin.Localizer["DuelChallengeNumberRounds"]} {_plugin.DuelManager!.PendingChallenges[player].MaxRounds}" : $"{_plugin.Localizer["DuelChallengeNumberRoundsSelect"]}")}", (pl, o) =>
             {
                 DuelChallengeSelectNumberRounds(player, menu);
             });
@@ -254,15 +254,14 @@ namespace CS2_Poor_Duels
             if (player == null) return;
             ChatMenu menu = new(_plugin.Localizer["DuelChallengeInvitation", challenger], _plugin);
 
-            /*
+            
             if(player.IsBot)
             {
                 _plugin.DuelManager!.PendingChallenges[challenger].Accepted = true;
-                Server.PrintToChatAll("TO BOT AKCEPTOWAL JAK COS UWU");
                 _plugin.DuelManager.PreStartDuelChallenge(_plugin.DuelManager!.PendingChallenges[challenger]);
                 return;
             }
-            */
+            
 
             menu.AddItem($"{_plugin.Localizer["InviteAccept"]}", (pl, o) =>
             {

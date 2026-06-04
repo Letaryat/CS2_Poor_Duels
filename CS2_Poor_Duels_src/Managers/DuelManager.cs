@@ -366,8 +366,7 @@ namespace CS2_Poor_Duels
             var winnerKills = winner == challenger ? challenge.ChallengerWins : challenge.TargetWins;
             var loserKills  = loser == challenger ? challenge.ChallengerWins : challenge.TargetWins;
 
-
-            Server.PrintToChatAll($"{_plugin.Localizer["Prefix"]}{_plugin.Localizer["DuelWonServerMessage", winner, loser, winnerKills, loserKills]}");
+            Server.PrintToChatAll($"{_plugin.Localizer["Prefix"]}{_plugin.Localizer["DuelWonServerMessage", winner.PlayerName, loser.PlayerName, winnerKills, loserKills]}");
 
             _plugin.AddTimer(1.0f, () =>
             {

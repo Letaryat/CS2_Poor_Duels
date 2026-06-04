@@ -6,6 +6,7 @@
     "ArenaNotFound": " Nie mogliśmy znaleźć pustej areny. Zostałeś przeniesiony do obserwatorów.",
     "EmptyArenaNotifier": "Brak przeciwnika. Jesteś na pustej arenie.",
     "NowFighting": " <div class=\"fontSize-s\" style=\"text-align: center;\"><font color=\"#C0C0C0\">{0}</font><br/><font class=\"fontSize-m\" color=\"#2BFFDC\">{1}</font> : <font class=\"fontSize-m\" color=\"#FFC62B\">{2}</font></div> ",
+    "NowFightingDuel": " <div class=\"fontSize-s\" style=\"text-align: center;\"><font class=\"fontSize-m\" color=\"#00FF08\">BEST OF {0}</font><font color=\"#C0C0C0\">{1}</font><br/><font class=\"fontSize-m\" color=\"#2BFFDC\">{2}</font> : <font class=\"fontSize-m\" color=\"#FFC62B\">{3}</font></div> ",    
     "EnemyLeft": "Przeciwnik wyszedł! Szukam nowego przeciwnika...",
     "CustomArenaMenuTitle": "Niestandardowe areny",
     "TeleportToArenaTitle": "Teleportuj do spawnu:",
@@ -46,5 +47,5 @@
     "InviteAccept": "{lime}✓ {default} Zaakceptuj",
     "InviteDecline": "{lightred}⛌ {default} Odrzuc",
     "InviteTimeEnd": " {orange}Czas aby zaakceptowac zaproszenie minal.",
-        "DuelWonServerMessage": "Pojedynek miedzy {lime}{0}{default} i {lime}{1}{default} zakonczony! {lime}{0} {default}wygral! {lime}{2} {default}- {lightred}{3}"
+    "DuelWonServerMessage": "Pojedynek miedzy {lime}{0}{default} i {lime}{1}{default} zakonczony! {lime}{0} {default}wygral! {lime}{2} {default}- {lightred}{3}"
 }

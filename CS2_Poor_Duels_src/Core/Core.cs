@@ -7,7 +7,7 @@ namespace CS2_Poor_Duels.Core;
 public partial class CS2_Poor_DuelsPlugin : BasePlugin, IPluginConfig<DuelsConfig>
 {
     public override string ModuleName => "CS2_Poor_Duels";
-    public override string ModuleVersion => "0.3.7.3 Alpha";
+    public override string ModuleVersion => "0.3.7.4 Alpha";
     public override string ModuleAuthor => "Letaryat | github.com/Letaryat";
     public override string ModuleDescription => "A simple 1v1 duels gamemode for Counter-Strike 2.";
     public required DuelsConfig Config { get; set; }

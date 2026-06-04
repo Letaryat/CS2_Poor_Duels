@@ -74,7 +74,6 @@ namespace CS2_Poor_Duels
         private void OnDuelCommand(CCSPlayerController? p, CommandInfo commandInfo)
         {
             if (p == null || !p.IsValid) return;
-            Server.PrintToChatAll("TUTAJ MENU DO DUEL CZELENDZ");
             _plugin.MenuManager!.DuelChallengeSettings(p);
         }
 
