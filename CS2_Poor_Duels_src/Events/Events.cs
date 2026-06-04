@@ -369,7 +369,8 @@ namespace CS2_Poor_Duels
                 else
                     challenge.TargetWins++;
 
-                int winsNeeded = (challenge.MaxRounds / 2) + 1;
+                //int winsNeeded = (challenge.MaxRounds / 2) + 1;
+                int winsNeeded = challenge.MaxRounds;
                 bool challengeOver =
                     challenge.ChallengerWins >= winsNeeded ||
                     challenge.TargetWins >= winsNeeded;
