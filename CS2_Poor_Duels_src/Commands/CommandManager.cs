@@ -1,3 +1,4 @@
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Utils;
@@ -32,14 +33,19 @@ namespace CS2_Poor_Duels
             foreach (var cmd in _plugin.Config.cmdAlias.aliasPistols)
             {
                 _plugin.AddCommand(cmd, "Select your favorite pistol.", OnPistolCommand);
-            }   
-            
-        
+            }
+            foreach (var cmd in _plugin.Config.cmdAlias.aliasDuel)
+            {
+                _plugin.AddCommand(cmd, "Start a duel.", OnDuelCommand);
+            }
+
+
             /*
             _plugin.AddCommand("css_scout", "Scout round preference", OnScoutCommand);
             _plugin.AddCommand("css_awp", "AWP round preference", OnAWPCommand);
             */
         }
+
         private void OnGunsCommand(CCSPlayerController? player, CommandInfo commandInfo)
         {
             if (player == null || !player.IsValid) return;
@@ -63,6 +69,13 @@ namespace CS2_Poor_Duels
         {
             if (p == null || !p.IsValid) return;
             _plugin.MenuManager!.SelectWeaponPreference(p, 1);
+        }
+
+        private void OnDuelCommand(CCSPlayerController? p, CommandInfo commandInfo)
+        {
+            if (p == null || !p.IsValid) return;
+            Server.PrintToChatAll("TUTAJ MENU DO DUEL CZELENDZ");
+            _plugin.MenuManager!.DuelChallengeSettings(p);
         }
 
         private void OnAfkCommand(CCSPlayerController? p, CommandInfo commandInfo)

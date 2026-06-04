@@ -3,6 +3,7 @@ using CS2_Poor_Duels.Core;
 using CS2MenuManager.API.Menu;
 using CounterStrikeSharp.API.Modules.Utils;
 using CS2_Poor_Duels.Models;
+using CounterStrikeSharp.API;
 
 namespace CS2_Poor_Duels
 {
@@ -115,5 +116,186 @@ namespace CS2_Poor_Duels
             }
             menu.Display(player, 0);
         }
+
+
+        /* CHALLENGE SYSTEM (WIP) */
+
+        public void DuelChallengeSettings(CCSPlayerController player)
+        {
+            if (player == null) return;
+            ChatMenu menu = new(_plugin.Localizer["DuelChallengeSettingsMenuTitle"], _plugin);
+
+            if (!_plugin.DuelManager!.PendingChallenges.ContainsKey(player))
+            {
+                var challenge = new DuelChallenge
+                {
+                    Challenger = player,
+                    RoundType = 0,
+                    MaxRounds = 5
+                };
+
+                _plugin.DuelManager!.PendingChallenges[player] = challenge;
+            }
+
+
+            menu.AddItem($"{(_plugin.DuelManager!.PendingChallenges[player].Target != null ? $"{_plugin.Localizer["DuelChallengePlayer"]} {_plugin.DuelManager!.PendingChallenges[player].Target.PlayerName}" : $"{_plugin.Localizer["DuelChallengePlayerSelect"]}")}", (pl, o) =>
+            {
+                DuelChallengePlayerMenu(player, menu);
+            });
+
+            // ToDo: What Round + How many round
+
+            menu.AddItem($"{(_plugin.Config.DuelRounds[_plugin.DuelManager!.PendingChallenges[player].RoundType].Name != null ? $"{_plugin.Localizer["DuelChallengeRound"]}: {_plugin.Config.DuelRounds[_plugin.DuelManager!.PendingChallenges[player].RoundType].Name}" : $"{_plugin.Localizer["DuelChallengeRoundSelect"]}")}", (pl, o) =>
+            {
+                DuelChallengeRoundType(player, menu);
+            });
+
+            menu.AddItem($"{(_plugin.DuelManager!.PendingChallenges[player].MaxRounds != 0 ? $"{_plugin.Localizer["DuelChallengeNumberRounds"]}: {_plugin.DuelManager!.PendingChallenges[player].MaxRounds}" : $"{_plugin.Localizer["DuelChallengeNumberRoundsSelect"]}")}", (pl, o) =>
+            {
+                DuelChallengeSelectNumberRounds(player, menu);
+            });
+            menu.AddItem($"{_plugin.Localizer["DuelChallengeChallenge"]}", (pl, o) =>
+            {
+                if (_plugin.DuelManager!.PendingChallenges[player].Target != null)
+                {
+                    DuelChallengeSendInvitation(_plugin.DuelManager!.PendingChallenges[player].Target, player);
+                }
+            }, _plugin.DuelManager!.PendingChallenges[player].Target == null ? CS2MenuManager.API.Enum.DisableOption.DisableShowNumber : CS2MenuManager.API.Enum.DisableOption.None);
+
+            menu.Display(player, 0);
+        }
+
+        public void DuelChallengePlayerMenu(CCSPlayerController player, ChatMenu prevMenu)
+        {
+            if (player == null) return;
+            ChatMenu menu = new(_plugin.Localizer["DuelChallengeSelectPlayerTitle"], _plugin);
+
+            var availablePlayers = Utilities.GetPlayers()
+                .Where(p =>
+                    p != null &&
+                    p != player &&
+                    !p.IsHLTV &&
+                    p.IsValid &&
+                    p.Connected == PlayerConnectedState.Connected)
+                .ToList();
+
+            if (availablePlayers.Count == 0)
+            {
+                player.PrintToChat($"{_plugin.Localizer["Prefix"]}{_plugin.Localizer["NoPlayersInList"]}");
+                return;
+            }
+
+            foreach (var p in availablePlayers)
+            {
+                menu.AddItem($"{p.PlayerName}", (pl, o) =>
+                {
+                    _plugin.DuelManager!.PendingChallenges[player].Target = p;
+                    o.PostSelectAction = CS2MenuManager.API.Enum.PostSelectAction.Close;
+                    DuelChallengeSettings(player);
+                });
+            }
+            menu.PrevMenu = prevMenu;
+            menu.Display(player, 0);
+        }
+
+        private void DuelChallengeRoundType(CCSPlayerController player, ChatMenu prevMenu)
+        {
+            if (player == null) return;
+            ChatMenu menu = new(_plugin.Localizer["DuelChallengeRoundTypeTitle"], _plugin);
+
+            for (int i = 0; i < _plugin.Config.DuelRounds.Count; i++)
+            {
+                int index = i;
+                var roundType = _plugin.Config.DuelRounds[i];
+
+                menu.AddItem($"{roundType.Name!.ToUpper()}", (p, o) =>
+                {
+                    _plugin.DuelManager!.PendingChallenges[player].RoundType = index;
+                    o.PostSelectAction = CS2MenuManager.API.Enum.PostSelectAction.Close;
+                    DuelChallengeSettings(player);
+                });
+            }
+
+            menu.PrevMenu = prevMenu;
+            menu.Display(player, 0);
+        }
+
+        private void DuelChallengeSelectNumberRounds(
+            CCSPlayerController player,
+            ChatMenu prevMenu = null!)
+        {
+            if (player == null) return;
+
+            ChatMenu menu = new(
+                _plugin.Localizer["DuelChallengeNumberRoundsTitle"],
+                _plugin);
+
+
+            for (int i = 5; i <= 30; i += 5)
+            {
+                int rounds = i;
+
+                menu.AddItem($"{rounds}", (pl, o) =>
+                {
+                    _plugin.DuelManager!
+                        .PendingChallenges[player]
+                        .MaxRounds = rounds;
+                    o.PostSelectAction = CS2MenuManager.API.Enum.PostSelectAction.Close;
+                    DuelChallengeSettings(player);
+                });
+            }
+
+            menu.PrevMenu = prevMenu;
+            menu.Display(player, 0);
+        }
+
+        private void DuelChallengeSendInvitation(CCSPlayerController player, CCSPlayerController challenger)
+        {
+            if (player == null) return;
+            ChatMenu menu = new(_plugin.Localizer["DuelChallengeInvitation", challenger], _plugin);
+
+            /*
+            if(player.IsBot)
+            {
+                _plugin.DuelManager!.PendingChallenges[challenger].Accepted = true;
+                Server.PrintToChatAll("TO BOT AKCEPTOWAL JAK COS UWU");
+                _plugin.DuelManager.PreStartDuelChallenge(_plugin.DuelManager!.PendingChallenges[challenger]);
+                return;
+            }
+            */
+
+            menu.AddItem($"{_plugin.Localizer["InviteAccept"]}", (pl, o) =>
+            {
+                _plugin.DuelManager!.PendingChallenges[challenger].Accepted = true;
+                _plugin.DuelManager.PreStartDuelChallenge(_plugin.DuelManager!.PendingChallenges[challenger]);
+            });
+
+            menu.AddItem($"{_plugin.Localizer["InviteDecline"]}", (pl, o) =>
+            {
+                _plugin.DuelManager!.PendingChallenges[challenger].Accepted = false;
+                if (_plugin.DuelManager.PendingChallenges.ContainsKey(challenger))
+                {
+                    _plugin.DuelManager.PendingChallenges.Remove(challenger);
+                }
+            });
+
+            menu.Display(player, 15);
+
+            _plugin.AddTimer(15.0f, () =>
+            {
+                player.PrintToChat($"{_plugin.Localizer["Prefix"]}{_plugin.Localizer["InviteTimeEnd"]}");
+                challenger.PrintToChat($"{_plugin.Localizer["Prefix"]}{_plugin.Localizer["InviteTimeEnd"]}");
+
+                if (_plugin.DuelManager!.PendingChallenges.ContainsKey(challenger))
+                {
+                    _plugin.DuelManager.PendingChallenges.Remove(challenger);
+                }
+
+            });
+
+
+        }
+
+
     }
 }

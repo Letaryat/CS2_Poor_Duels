@@ -41,5 +41,7 @@ namespace CS2_Poor_Duels.Models
         public string[] aliasRifles { get; set; } = ["css_rifles"];
         [JsonPropertyName("AliasPistols")]
         public string[] aliasPistols { get; set; } = ["css_pistols"];
+        [JsonPropertyName("AliasDuel")]
+        public string[] aliasDuel { get; set; } = ["css_duel"];
     }
 }

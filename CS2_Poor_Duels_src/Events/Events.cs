@@ -85,7 +85,7 @@ namespace CS2_Poor_Duels
                         }
                     }
 
-                    return HookResult.Continue; 
+                    return HookResult.Continue;
                 }
             }
             if (WeaponModels.rifleItems.Contains(classname))
@@ -307,21 +307,32 @@ namespace CS2_Poor_Duels
 
             var sid = player.SteamID;
 
-            var duel = _plugin.DuelManager!.ActiveDuels.FirstOrDefault(d => d.player1 == player || d.player2 == player);
-
             if (_plugin.PlayerManager!._playerPreferences.ContainsKey(sid))
             {
                 Task.Run(async () =>
                 {
                     await _plugin.DatabaseManager!.SavePlayerInformation(sid, _plugin.PlayerManager._playerPreferences[sid]);
                 });
-
             }
 
             if (_plugin.QueueManager!._AfkPlayers.Contains(player)) _plugin.QueueManager._AfkPlayers.Remove(player);
             if (_plugin.QueueManager!._usedAfkCMD.Contains(player)) _plugin.QueueManager._usedAfkCMD.Remove(player);
             if (_plugin.QueueManager!._WaitingQueue.Contains(player)) _plugin.QueueManager._WaitingQueue.Remove(player);
             _plugin.QueueManager.RemoveWaitingPlayer(player);
+
+            // Sprawdź challenge PRZED zwykłym duelem
+            var challenge = _plugin.DuelManager!.ActiveChallenges
+                .FirstOrDefault(c => c.Challenger == player || c.Target == player);
+
+            if (challenge != null)
+            {
+                _plugin.DuelManager.ChallengeEndPlayerDisconnect(challenge, player);
+                return HookResult.Continue;
+            }
+
+            // Zwykły duel
+            var duel = _plugin.DuelManager!.ActiveDuels
+                .FirstOrDefault(d => d.player1 == player || d.player2 == player);
 
             if (duel == null)
             {
@@ -333,6 +344,7 @@ namespace CS2_Poor_Duels
 
             return HookResult.Continue;
         }
+        
         private HookResult OnPlayerDeath(EventPlayerDeath @event, GameEventInfo info)
         {
             info.DontBroadcast = true;
@@ -340,20 +352,61 @@ namespace CS2_Poor_Duels
             var victim = @event.Userid;
             var attacker = @event.Attacker;
 
-            var duel = _plugin.DuelManager!.ActiveDuels.FirstOrDefault(d => d.player1 == victim || d.player2 == victim);
+            if (attacker != null && attacker != victim)
+            {
+                _plugin.MutualScoring!.MutualScoringOnDeath(attacker!, victim!);
+            }
+
+            var challenge = _plugin.DuelManager!.ActiveChallenges
+                .FirstOrDefault(c =>
+                    c.Challenger == victim || c.Target == victim ||
+                    c.Challenger == attacker || c.Target == attacker);
+
+            if (challenge != null)
+            {
+                if (attacker != null && attacker == challenge.Challenger)
+                    challenge.ChallengerWins++;
+                else
+                    challenge.TargetWins++;
+
+                int winsNeeded = (challenge.MaxRounds / 2) + 1;
+                bool challengeOver =
+                    challenge.ChallengerWins >= winsNeeded ||
+                    challenge.TargetWins >= winsNeeded;
+
+                var challengeDuel = _plugin.DuelManager!.ActiveDuels
+                    .FirstOrDefault(d =>
+                        (d.player1 == challenge.Challenger && d.player2 == challenge.Target) ||
+                        (d.player1 == challenge.Target && d.player2 == challenge.Challenger));
+
+                if (challengeOver)
+                {
+                    _plugin.DuelManager.EndDuelChallenge(challenge);
+                }
+                else
+                {
+                    if (challengeDuel != null)
+                    {
+                        _plugin.AddTimer(0.5f, () =>
+                        {
+                            _plugin.DuelManager.RestartChallengeDuel(challenge, challengeDuel);
+                        });
+                    }
+                }
+
+                return HookResult.Continue;
+            }
+
+            var duel = _plugin.DuelManager!.ActiveDuels
+                .FirstOrDefault(d => d.player1 == victim || d.player2 == victim);
+
             if (duel == null)
             {
                 _plugin.PluginExtensions!.DebugLogger("OnPlayerDeath Duel not found");
                 return HookResult.Continue;
             }
 
-            if (attacker != null || attacker != victim)
-            {
-                _plugin.MutualScoring!.MutualScoringOnDeath(attacker!, victim!);
-            }
-
             _plugin.PluginExtensions!.DebugLogger($"PlayerDeath: Victim: {victim!.PlayerName}, Attacker: {attacker!.PlayerName}");
-
             _plugin.DuelManager.EndDuel(duel);
 
             return HookResult.Continue;

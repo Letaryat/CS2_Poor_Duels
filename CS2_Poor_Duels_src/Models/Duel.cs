@@ -8,5 +8,6 @@ namespace CS2_Poor_Duels.Models
         public CCSPlayerController? player1 { get; set; }
         public CCSPlayerController? player2 { get; set; }
         public Arena? Arena { get; set; }
+        public bool IsChallengeDuel { get; set; } = false;
     }
 }

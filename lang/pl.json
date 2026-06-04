@@ -30,5 +30,21 @@
     "RifleChanged": "Twoja preferencja karabinu została zmieniona na: {lime}{0}",
     "PistolChanged": "Twoja preferencja pistoletu została zmieniona na: {lime}{0}",
     "RoundPreferenceDisabled": "{lightred}{0} Wyłączyłeś{default} rundę {orange} {1}",
-    "RoundPreferenceEnabled": "{lime}{0} Włączyłeś {default} rundę {orange} {1}"
+    "RoundPreferenceEnabled": "{lime}{0} Włączyłeś {default} rundę {orange} {1}",
+    "DuelChallengeSettingsMenuTitle": "Ustawienia wyzwania",
+    "DuelChallengePlayer": "Gracz:",
+    "DuelChallengePlayerSelect": "Wybierz gracza",
+    "DuelChallengeRound": "Runda:",
+    "DuelChallengeRoundSelect": "Wybierz typ rundy",
+    "DuelChallengeNumberRounds": "Liczba rund:",
+    "DuelChallengeNumberRoundsSelect": "Wybierz liczbe rund",
+    "DuelChallengeSelectPlayerTitle": "Wybierz gracza",
+    "NoPlayersInList": "{red} Nie mozna znalezc graczy na serwerze.",
+    "DuelChallengeRoundTypeTitle": "Wybierz typ rundy",
+    "DuelChallengeNumberRoundsTitle": "Ile rund",
+    "DuelChallengeInvitation": "{lime}{0}{default} wyzwal Cie na pojedynek!",
+    "InviteAccept": "{lime}✓ {default} Zaakceptuj",
+    "InviteDecline": "{lightred}⛌ {default} Odrzuc",
+    "InviteTimeEnd": " {orange}Czas aby zaakceptowac zaproszenie minal.",
+        "DuelWonServerMessage": "Pojedynek miedzy {lime}{0}{default} i {lime}{1}{default} zakonczony! {lime}{0} {default}wygral! {lime}{2} {default}- {lightred}{3}"
 }

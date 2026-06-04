@@ -12,6 +12,10 @@ namespace CS2_Poor_Duels
         public List<PlayerDuelData> ActiveDuels = new List<PlayerDuelData>();
         public readonly Dictionary<ulong, bool> _lastSpawnSide = new();
 
+        // CHALLANGE SYSTEM
+        public Dictionary<CCSPlayerController, DuelChallenge> PendingChallenges = new();
+        public List<DuelChallenge> ActiveChallenges = new();
+
         public void TryStartDuel()
         {
             var players = string.Join(", ", _plugin.QueueManager!._WaitingQueue.Select(p => p.PlayerName));
@@ -81,9 +85,8 @@ namespace CS2_Poor_Duels
             }
         }
 
-        private void StartDuel(CCSPlayerController p1, CCSPlayerController p2, Arena arena)
+        public void StartDuel(CCSPlayerController p1, CCSPlayerController p2, Arena arena, bool isChallenge = false)
         {
-
             arena.isReserved = false;
             arena.isBusy = true;
 
@@ -103,7 +106,8 @@ namespace CS2_Poor_Duels
             {
                 player1 = p1,
                 player2 = p2,
-                Arena = arena
+                Arena = arena,
+                IsChallengeDuel = isChallenge
             });
 
             bool swapSpawns = new Random().Next(0, 2) == 0;
@@ -111,10 +115,10 @@ namespace CS2_Poor_Duels
             Vector spawnP1 = swapSpawns ? arena.Spawn2 : arena.Spawn1;
             Vector spawnP2 = swapSpawns ? arena.Spawn1 : arena.Spawn2;
 
-            
+
             QAngle? angleP1 = swapSpawns ? arena.QAngle2 : arena.QAngle1;
             QAngle? angleP2 = swapSpawns ? arena.QAngle1 : arena.QAngle2;
-            
+
             /*
             QAngle angleP1 = CalculateAngleFacingTarget(spawnP1, spawnP2);
             QAngle angleP2 = CalculateAngleFacingTarget(spawnP2, spawnP1);
@@ -254,12 +258,206 @@ namespace CS2_Poor_Duels
 
         }
 
+
+        public void ForceEndDuel(CCSPlayerController player)
+        {
+            var duel = ActiveDuels.FirstOrDefault(d =>
+                d.player1 == player ||
+                d.player2 == player);
+
+            if (duel == null) return;
+
+            if (duel.Arena == null) return;
+
+            var opponent = duel.player1 == player ? duel.player2 : duel.player1;
+
+            duel.Arena.isBusy = false;
+            duel.Arena.showCenterHTML = false;
+
+            ActiveDuels.Remove(duel);
+
+            if (opponent != null)
+            {
+                _plugin.AddTimer(1.0f, () =>
+                {
+                    PreparePlayer(opponent);
+                });
+                Server.NextFrame(() =>
+                {
+                    TryStartDuel();
+                });
+            }
+
+            _plugin.PluginExtensions!.DebugLogger(
+                $"Force ended duel arena {duel.Arena.Id}"
+            );
+        }
+
         public int GetRoundIndexByName(string roundName)
         {
             if (string.IsNullOrWhiteSpace(roundName)) return -1;
             _plugin.ArenaManager!.RoundWeaponIndexCache.TryGetValue(roundName.ToLower(), out int roundId);
             return roundId;
         }
+
+
+        /* CHALLENGE SYSTEM (WIP) */
+        public void PreStartDuelChallenge(DuelChallenge challenge)
+        {
+            var challenger = challenge.Challenger;
+            var target = challenge.Target;
+
+            if (challenger == null || target == null)
+                return;
+
+            _plugin.QueueManager!.RemovePlayerFromQueue(challenger);
+            _plugin.QueueManager.RemovePlayerFromQueue(target);
+
+            _plugin.QueueManager.RemoveWaitingPlayer(challenger);
+            _plugin.QueueManager.RemoveWaitingPlayer(target);
+
+            ForceEndDuel(challenger);
+            ForceEndDuel(target);
+
+            var arena = _plugin.ArenaManager!.GetFreeArena();
+
+            if (arena == null)
+            {
+                challenger.PrintToChat($"{_plugin.Localizer["Prefix"]}{_plugin.Localizer["ArenaNotFound"]}");
+                target.PrintToChat($"{_plugin.Localizer["Prefix"]}{_plugin.Localizer["ArenaNotFound"]}");
+                return;
+            }
+
+            challenge.Arena = arena;
+
+            ActiveChallenges.Add(challenge);
+
+            StartDuel(
+                challenger,
+                target,
+                arena,
+                isChallenge: true
+            );
+
+            PendingChallenges.Remove(challenger);
+        }
+
+        public void EndDuelChallenge(DuelChallenge challenge)
+        {
+            if (challenge == null) return;
+
+            var challenger = challenge.Challenger;
+            var target = challenge.Target;
+
+            if (challenger == null || target == null) return;
+            if (challenge.Arena == null) return;
+
+            ActiveDuels.RemoveAll(d =>
+                (d.player1 == challenger && d.player2 == target) ||
+                (d.player1 == target && d.player2 == challenger));
+
+            challenge.Arena.isBusy = false;
+            challenge.Arena.showCenterHTML = false;
+
+            ActiveChallenges.Remove(challenge);
+
+            var winner = challenge.ChallengerWins > challenge.TargetWins ? challenger : target;
+            var loser = winner == challenger ? target : challenger;
+            var winnerKills = winner == challenger ? challenge.ChallengerWins : challenge.TargetWins;
+            var loserKills  = loser == challenger ? challenge.ChallengerWins : challenge.TargetWins;
+
+
+            Server.PrintToChatAll($"{_plugin.Localizer["Prefix"]}{_plugin.Localizer["DuelWonServerMessage", winner, loser, winnerKills, loserKills]}");
+
+            _plugin.AddTimer(1.0f, () =>
+            {
+                PreparePlayer(challenger);
+                PreparePlayer(target);
+            });
+
+            Server.NextFrame(() => TryStartDuel());
+        }
+
+        public void RestartChallengeDuel(DuelChallenge challenge, PlayerDuelData duel)
+        {
+            var p1 = duel.player1;
+            var p2 = duel.player2;
+            var oldArena = duel.Arena;
+
+            if (p1 == null || p2 == null || oldArena == null) return;
+
+            int wins1 = challenge.Challenger == p1 ? challenge.ChallengerWins : challenge.TargetWins;
+            int wins2 = challenge.Challenger == p2 ? challenge.ChallengerWins : challenge.TargetWins;
+
+            oldArena.isBusy = false;
+            oldArena.isReserved = false;
+            oldArena.showCenterHTML = false;
+            ActiveDuels.Remove(duel);
+
+            _plugin.AddTimer(1.0f, () =>
+            {
+                if (p1 == null || !p1.IsValid || p2 == null || !p2.IsValid) return;
+
+                var newArena = _plugin.ArenaManager!.GetFreeArena();
+                if (newArena == null)
+                {
+                    _plugin.PluginExtensions!.DebugLogger("RestartChallengeDuel: No free arena found");
+                    newArena = oldArena;
+                }
+
+                challenge.Arena = newArena;
+
+                StartDuel(p1, p2, newArena, isChallenge: true);
+            });
+        }
+
+        public void ChallengeEndPlayerDisconnect(DuelChallenge challenge, CCSPlayerController disconnectedPlayer)
+        {
+            if (challenge == null) return;
+
+            var remainingPlayer = challenge.Challenger == disconnectedPlayer
+                ? challenge.Target
+                : challenge.Challenger;
+
+            _plugin.PluginExtensions!.DebugLogger(
+                $"ChallengeEndPlayerDisconnect: {disconnectedPlayer.PlayerName} left. Remaining: {remainingPlayer?.PlayerName ?? "none"}");
+
+            if (challenge.Arena != null)
+            {
+                challenge.Arena.isBusy = false;
+                challenge.Arena.isReserved = false;
+                challenge.Arena.showCenterHTML = false;
+            }
+
+            ActiveDuels.RemoveAll(d =>
+                (d.player1 == challenge.Challenger && d.player2 == challenge.Target) ||
+                (d.player1 == challenge.Target && d.player2 == challenge.Challenger));
+
+            if (PendingChallenges.ContainsKey(challenge.Challenger))
+                PendingChallenges.Remove(challenge.Challenger);
+
+            ActiveChallenges.Remove(challenge);
+
+            Server.NextFrame(() =>
+            {
+                if (remainingPlayer != null && remainingPlayer.IsValid &&
+                    remainingPlayer.Connected == PlayerConnectedState.Connected)
+                {
+                    remainingPlayer.PrintToCenterAlert($"{_plugin.Localizer["EnemyLeft"]}");
+
+                    _plugin.AddTimer(1.0f, () =>
+                    {
+                        PreparePlayer(remainingPlayer);
+                    });
+
+                    Server.NextFrame(() =>
+                    {
+                        TryStartDuel();
+                    });
+                }
+            });
+        }
+
 
     }
 }

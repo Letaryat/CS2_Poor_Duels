@@ -15,7 +15,7 @@ namespace CS2_Poor_Duels
             _plugin.RegisterListener<Listeners.OnTick>(OnTick);
             _plugin.RegisterListener<Listeners.OnClientPutInServer>(OnClientPutInServer);
             _plugin.RegisterListener<Listeners.OnServerPrecacheResources>(OnServerPrecacheResources);
-            
+
             /* HookMessages */
             _plugin.HookUserMessage(411, RemoveBloodSpatter, HookMode.Pre);
 
@@ -31,11 +31,11 @@ namespace CS2_Poor_Duels
 
         private HookResult OnJoinTeamListener(CCSPlayerController? player, CommandInfo commandInfo)
         {
-            if(player == null || !player.IsValid || player.IsHLTV || player.IsBot) return HookResult.Continue;
+            if (player == null || !player.IsValid || player.IsHLTV || player.IsBot) return HookResult.Continue;
             if (!int.TryParse(commandInfo.GetArg(1), out int targetTeam))
                 return HookResult.Continue;
 
-            if((player.Team == CsTeam.Terrorist || player.Team == CsTeam.CounterTerrorist) && !_plugin.QueueManager!._AfkPlayers.Contains(player) && targetTeam != 1)
+            if ((player.Team == CsTeam.Terrorist || player.Team == CsTeam.CounterTerrorist) && !_plugin.QueueManager!._AfkPlayers.Contains(player) && targetTeam != 1)
             {
                 PluginExtensions.PlaySoundToClient(player, _plugin.Config.soundsPath.disabledSound);
                 return HookResult.Stop;
@@ -63,16 +63,42 @@ namespace CS2_Poor_Duels
 
                     if (p1 == null || p2 == null) continue;
 
-                    p1.PrintToCenterHtml(
-                        $"{_plugin.Localizer["NowFighting", p2.PlayerName,
-                            _plugin.MutualScoring!.mutualScoring_[p1].Kills[p2],
-                            _plugin.MutualScoring!.mutualScoring_[p2].Kills[p1]]}"
-                    );
-                    p2.PrintToCenterHtml(
-                        $"{_plugin.Localizer["NowFighting", p1.PlayerName,
-                            _plugin.MutualScoring!.mutualScoring_[p2].Kills[p1],
-                            _plugin.MutualScoring!.mutualScoring_[p1].Kills[p2]]}"
-                    );
+                    if (!duels.IsChallengeDuel)
+                    {
+                        p1.PrintToCenterHtml(
+                            $"{_plugin.Localizer["NowFighting", p2.PlayerName,
+                                _plugin.MutualScoring!.mutualScoring_[p1].Kills[p2],
+                                _plugin.MutualScoring!.mutualScoring_[p2].Kills[p1]]}"
+                        );
+                        p2.PrintToCenterHtml(
+                            $"{_plugin.Localizer["NowFighting", p1.PlayerName,
+                                _plugin.MutualScoring!.mutualScoring_[p2].Kills[p1],
+                                _plugin.MutualScoring!.mutualScoring_[p1].Kills[p2]]}"
+                        );
+                    }
+                    else
+                    {
+                        var challenge = _plugin.DuelManager!.ActiveChallenges
+                        .FirstOrDefault(c =>
+                            c.Challenger == p1 || c.Target == p1 ||
+                            c.Challenger == p2 || c.Target == p2);
+
+                        p1.PrintToCenterHtml(
+                            $"{_plugin.Localizer["NowFightingDuel", 
+                                challenge!.MaxRounds,
+                                p2.PlayerName,
+                                challenge!.ChallengerWins,
+                                challenge!.TargetWins]}"
+                        );
+                        p2.PrintToCenterHtml(
+                            $"{_plugin.Localizer["NowFightingDuel", 
+                                challenge.MaxRounds,
+                                p1.PlayerName,
+                                challenge.TargetWins,
+                                challenge.ChallengerWins]}"
+                        );
+                    }
+
                 }
 
             }

@@ -1,3 +1,4 @@
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CS2_Poor_Duels.Core;
 using CS2_Poor_Duels.Extensions;
@@ -28,6 +29,14 @@ namespace CS2_Poor_Duels
             if (_plugin.DuelManager!.ActiveDuels.Any(d => d.player1 == player || d.player2 == player))
             {
                 _plugin.PluginExtensions!.DebugLogger($"Ignored AddToQueue: {player.PlayerName} (active duel)");
+                return;
+            }
+
+            var challenge = _plugin.DuelManager.ActiveChallenges.FirstOrDefault(c => c.Challenger == player || c.Target == player);
+            if(challenge != null)
+            {
+                _plugin.PluginExtensions!.DebugLogger($"Ignored AddToQueue: {player.PlayerName} (pending challenge - starting now)");
+                _plugin.DuelManager.PreStartDuelChallenge(challenge);
                 return;
             }
 
