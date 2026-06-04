@@ -85,7 +85,7 @@ namespace CS2_Poor_Duels
             }
         }
 
-        public void StartDuel(CCSPlayerController p1, CCSPlayerController p2, Arena arena, bool isChallenge = false)
+        public void StartDuel(CCSPlayerController p1, CCSPlayerController p2, Arena arena, bool isChallenge = false, int RoundTypeId = -1)
         {
             arena.isReserved = false;
             arena.isBusy = true;
@@ -94,7 +94,32 @@ namespace CS2_Poor_Duels
 
             if (p1.IsBot || p2.IsBot)
             {
-                arena.roundType = _plugin.PlayerManager.GetRandomRound();
+                if (isChallenge)
+                {
+                    if (RoundTypeId == -1)
+                    {
+                        arena.roundType = _plugin.PlayerManager.GetRandomSharedRound(p1, p2);
+                    }
+                    else
+                    {
+                        arena.roundType = RoundTypeId;
+                    }
+                }
+                else
+                {
+                    arena.roundType = _plugin.PlayerManager.GetRandomRound();
+                }
+            }
+            else if (isChallenge)
+            {
+                if (RoundTypeId == -1)
+                {
+                    arena.roundType = _plugin.PlayerManager.GetRandomSharedRound(p1, p2);
+                }
+                else
+                {
+                    arena.roundType = RoundTypeId;
+                }
             }
             else
             {
@@ -336,7 +361,8 @@ namespace CS2_Poor_Duels
                 challenger,
                 target,
                 arena,
-                isChallenge: true
+                isChallenge: true,
+                RoundTypeId: challenge.RoundType
             );
 
             PendingChallenges.Remove(challenger);
@@ -364,7 +390,7 @@ namespace CS2_Poor_Duels
             var winner = challenge.ChallengerWins > challenge.TargetWins ? challenger : target;
             var loser = winner == challenger ? target : challenger;
             var winnerKills = winner == challenger ? challenge.ChallengerWins : challenge.TargetWins;
-            var loserKills  = loser == challenger ? challenge.ChallengerWins : challenge.TargetWins;
+            var loserKills = loser == challenger ? challenge.ChallengerWins : challenge.TargetWins;
 
             Server.PrintToChatAll($"{_plugin.Localizer["Prefix"]}{_plugin.Localizer["DuelWonServerMessage", winner.PlayerName, loser.PlayerName, winnerKills, loserKills]}");
 
