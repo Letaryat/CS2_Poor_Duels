@@ -189,6 +189,7 @@ Admin commands require **css_root** flag.
 
 ### [👾] Known issues
 - With "mp_ignore_round_win_conditions 1" sometimes server can change map to null. It is recommended to use a RTV plugin that checks on events such as roundstart if name of the map is null, if it is then change map to something else.
+- Using Windows instead of Linux, plugin is bugged lmao.
 
 ## [🚨] 
 Plugin is written by me. That means it might be poorly written and have some issues. Sometimes I have no idea what am I doing but when tested it works.<br> Project was made in my free time and I will update it when I got more time to do so. Because of that, PR's or any kind of help are welcome.
