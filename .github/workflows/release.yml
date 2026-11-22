@@ -30,12 +30,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # net10.0: PanoramaManager (the HUD) targets it, and the servers run CounterStrikeSharp on .NET 10.
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       # A class library does not copy its NuGet dlls on build. CopyLocalLockFileAssemblies makes
-      # Dapper and MySqlConnector land in build-out so Stage can pick them.
+      # Dapper, MySqlConnector and PanoramaManager land in build-out so Stage can pick them. The toast
+      # API (lib/PanoramaManager.Toasts.Api.dll) is a Private=false reference and never lands there.
       - name: Build
         run: dotnet build "$PROJECT" -c Release --nologo -o build-out -p:CopyLocalLockFileAssemblies=true
 
@@ -44,15 +46,23 @@ jobs:
       # no pdb or server config goes in. CS2MenuManager.dll and CS2_Poor_Duels_Api.dll are loaded from
       # addons/counterstrikesharp/shared/ on the server - a second copy of the API next to the plugin
       # means two types and the capability cast fails. maps/ holds the custom arena spawns the plugin
-      # reads from its own folder.
+      # reads from its own folder. PanoramaManager.dll is the HUD library, loaded from the plugin's
+      # own folder like in our other HUD plugins.
+      #
+      # workshop/ is the HUD layout for the workshop addon. It goes into the build artifact only, not
+      # into the release zip: the zip stays the plugin folder alone, as the mount expects it.
       - name: Stage release layout
         run: |
           set -e
           mkdir -p "out/$PLUGIN/maps"
           cp "build-out/$PLUGIN.dll" "build-out/$PLUGIN.deps.json" "out/$PLUGIN/"
-          cp build-out/Dapper.dll build-out/MySqlConnector.dll "out/$PLUGIN/"
+          cp build-out/Dapper.dll build-out/MySqlConnector.dll build-out/PanoramaManager.dll "out/$PLUGIN/"
           cp -r lang "out/$PLUGIN/"
           cp customSpawns/maps/*.json "out/$PLUGIN/maps/"
+
+          mkdir -p out/workshop/panorama/layout/custom_game out/workshop/panorama/styles/custom_game
+          cp hud/panorama/layout/custom_game/*.xml out/workshop/panorama/layout/custom_game/
+          cp hud/panorama/styles/custom_game/*.css out/workshop/panorama/styles/custom_game/
 
       - name: Verify the layout
         run: |
@@ -61,13 +71,25 @@ jobs:
           test -f "out/$PLUGIN/$PLUGIN.deps.json"
           test -f "out/$PLUGIN/Dapper.dll"
           test -f "out/$PLUGIN/MySqlConnector.dll"
+          test -f "out/$PLUGIN/PanoramaManager.dll"
           test -f "out/$PLUGIN/lang/en.json"
+          test -f out/workshop/panorama/layout/custom_game/duels_hud.xml
+          test -f out/workshop/panorama/styles/custom_game/duels_hud.css
+          test -f out/workshop/panorama/styles/custom_game/hud_shared.css
 
           # Stage only copies what it lists. A new package would build fine and then fail to load on
           # the server, so refuse to go on until its dlls are added to Stage.
-          extra=$(grep -oE '<PackageReference Include="[^"]+"' "$PROJECT" | cut -d'"' -f2 | grep -vxE 'CounterStrikeSharp\.API|CS2MenuManager|Dapper|MySqlConnector' || true)
+          extra=$(grep -oE '<PackageReference Include="[^"]+"' "$PROJECT" | cut -d'"' -f2 | grep -vxE 'CounterStrikeSharp\.API|CS2MenuManager|Dapper|MySqlConnector|PanoramaManager' || true)
           if [ -n "$extra" ]; then
             echo "::error::Unhandled PackageReference: $extra - add its dlls to the Stage step."
+            exit 1
+          fi
+
+          # The toast API must resolve from addons/counterstrikesharp/shared/. A copy next to the plugin
+          # gives it its own IToastApi type and the capability cast fails as if ToastService were not
+          # installed.
+          if find out -name 'PanoramaManager.Toasts.Api.dll' | grep -q .; then
+            echo "::error::PanoramaManager.Toasts.Api.dll was copied into the release - check Private=\"false\" on the reference."
             exit 1
           fi
 

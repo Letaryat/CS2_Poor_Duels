@@ -122,6 +122,9 @@ namespace CS2_Poor_Duels
 
             arena.showCenterHTML = true;
 
+            // The "now fighting" card, instead of the center HTML OnTick prints while showCenterHTML is on
+            _plugin.HudManager?.DuelStarted(p1, p2, arena);
+
             _plugin.AddTimer(0.1f, () =>
             {
                 var p1Pawn = p1.PlayerPawn.Value;
@@ -233,13 +236,17 @@ namespace CS2_Poor_Duels
             duel.Arena.isBusy = false;
             duel.Arena.showCenterHTML = false;
 
+            // Taken now: a disconnecting player's controller may be gone by the next frame
+            var leftName = player.IsValid ? player.PlayerName : string.Empty;
+
             Server.NextFrame(() =>
             {
                 ActiveDuels.Remove(duel);
 
                 if (remainingPlayer != null)
                 {
-                    remainingPlayer.PrintToCenterAlert($"{_plugin.Localizer["EnemyLeft"]}");
+                    if (_plugin.HudManager?.OpponentLeft(remainingPlayer, leftName) != true)
+                        remainingPlayer.PrintToCenterAlert($"{_plugin.Localizer["EnemyLeft"]}");
                     _plugin.AddTimer(1.0f, () =>
                     {
                         PreparePlayer(remainingPlayer);

@@ -1,0 +1,204 @@
+<root>
+	<styles>
+		<include src="s2r://panorama/styles/custom_game/hud_shared.vcss_c" />
+		<include src="s2r://panorama/styles/custom_game/duels_hud.vcss_c" />
+	</styles>
+
+	<!--
+		Duels HUD (CS2_Poor_Duels) - one info card for the duel and a pool of four toasts. Built from the
+		approved review page (HudMenu/previews/duels, tabs "Duel start", "Queue and alerts", "Loadout").
+
+		  du_card   the info card, banner shape, one state at a time:
+		            st-fight   "AWP duel / shadow / You lead by 2 this map" + YOU 3 : 1 THEM, 3 s at duel start
+		                       (was the "now fighting" center HTML, rewritten every tick for 3 s)
+		            st-wait    "Waiting / No opponent yet", until the duel starts   (was a center alert)
+		            st-left    "Opponent left / shadow left the duel"               (was a center alert)
+		            st-full    "No free arena / Moved to spectators"   (was two chat lines: ArenaNotFound + AFK)
+		            st-result  "Duel won" / "Duel lost" + the new score, 1.5 s     (new, off by default)
+		  df_card   the info card, face-off shape (now fighting only): both names in team colors, the
+		            score, a head-to-head bar. Hud.CardDesign "faceoff" picks it over du_card's st-fight.
+		  ts_0..3   toasts, a column of four in the middle of one side. Rifle / pistol saved, round on / off
+		            with the round chips, AFK, back in the queue, no switching teams (was chat lines, and
+		            for the team switch only a sound). Hud.ToastStyle "service" sends these to ToastService
+		            instead, and then this pool stays empty.
+
+		NOT INTERACTIVE. hittest false everywhere; the plugin opens it with CaptureInput = false.
+
+		CONTRACT (CS2_Poor_Duels_src/Hud/DuelsHud.cs must match)
+		  RootPanelId  = "DuelsRoot"   RevealClass = "show"   RowCount = 0
+		  CaptureInput = false         HideHud = None         SharedText = false
+
+		The root is full-screen and carries nothing visible itself; it is opened once per player and stays
+		open. Each card and each toast has its own "show", and "hidden" (collapse) while it is not in use.
+
+		ROOT VARIANTS (PanelHandle.SetVariant, server-wide, from the config)
+		  card-top | card-low        info card under the score (default) or under the crosshair
+		  toasts-left | toasts-right toast column in the middle of the left (default) or the right edge
+
+		DIALOG VARIABLES
+		  du_eyebrow du_title du_sub du_me du_op du_keys
+		  df_eyebrow df_k_me df_me_name df_me df_op df_k_op df_op_name
+		  ts_N_eyebrow ts_N_title ts_N_sub ts_N_c0..ts_N_c5            (N = 0..3)
+
+		CLASSES THE SERVER TOGGLES
+		  du_card     show hidden | st-fight st-wait st-left st-full st-result | win loss
+		  du_art      w-<weapon> | w-none        (the round's weapon; w-none = crosshair)
+		  du_sub      hidden                     (empty line)
+		  du_me du_op pop-a pop-b                (ping-pong, the number that changed on a result)
+		  df_card     show hidden | you-t you-ct (your team: names and bar in team colors)
+		  df_art      w-<weapon> | w-none
+		  df_tug      p0..p20                    (your share of the head-to-head, 5% steps, a clip)
+		  ts_N        show hidden | a-good a-bad a-warn (none = info) | wpn (weapon art) | has-chips
+		  ts_N_art    w-<weapon> | i-afk i-queue i-warn
+		  ts_N_cK     hidden | on | hit          (chip K: round on; hit = the one that changed)
+		  ts_N_bar    dur-3 dur-4 dur-5 dur-6 dur-8 | run
+	-->
+	<Panel class="hud-screen" hittest="false">
+		<Panel id="DuelsRoot" class="du-root" hittest="false">
+
+			<!-- ======================================================= info card, banner -->
+			<Panel id="du_card" class="du st-fight hidden" hittest="false">
+				<Panel class="du-artbox" hittest="false">
+					<Panel id="du_art" class="du-art w-none" hittest="false" />
+				</Panel>
+				<Panel class="du-text" hittest="false">
+					<Label class="du-eyebrow" hittest="false" text="{s:du_eyebrow}" />
+					<Label class="du-title" hittest="false" text="{s:du_title}" />
+					<Label id="du_sub" class="du-sub" hittest="false" text="{s:du_sub}" />
+				</Panel>
+				<Panel class="du-score" hittest="false">
+					<Panel class="du-nums" hittest="false">
+						<Label id="du_me" class="du-n du-me" hittest="false" text="{s:du_me}" />
+						<Label class="du-colon" hittest="false" text=":" />
+						<Label id="du_op" class="du-n du-op" hittest="false" text="{s:du_op}" />
+					</Panel>
+					<Label class="du-keys" hittest="false" text="{s:du_keys}" />
+				</Panel>
+			</Panel>
+
+			<!-- ======================================================= info card, face-off -->
+			<Panel id="df_card" class="df you-t hidden" hittest="false">
+				<Panel class="df-top" hittest="false">
+					<Panel class="df-artbox" hittest="false">
+						<Panel id="df_art" class="df-art w-none" hittest="false" />
+					</Panel>
+					<Label class="df-eyebrow" hittest="false" text="{s:df_eyebrow}" />
+				</Panel>
+				<Panel class="df-row" hittest="false">
+					<Panel class="df-side df-side-me" hittest="false">
+						<Label class="df-k" hittest="false" text="{s:df_k_me}" />
+						<Label class="df-name df-name-me" hittest="false" text="{s:df_me_name}" />
+					</Panel>
+					<Label class="df-num" hittest="false" text="{s:df_me}" />
+					<Panel class="df-vs" hittest="false" />
+					<Label class="df-num" hittest="false" text="{s:df_op}" />
+					<Panel class="df-side df-side-op" hittest="false">
+						<Label class="df-k" hittest="false" text="{s:df_k_op}" />
+						<Label class="df-name df-name-op" hittest="false" text="{s:df_op_name}" />
+					</Panel>
+				</Panel>
+				<Panel class="df-tug" hittest="false">
+					<Panel class="df-tug-op" hittest="false" />
+					<Panel id="df_tug" class="df-tug-me p10" hittest="false" />
+				</Panel>
+			</Panel>
+
+			<!-- ======================================================= toasts -->
+			<Panel class="ts-stack" hittest="false">
+				<Panel id="ts_0" class="ts hidden" hittest="false">
+					<Panel class="ts-row" hittest="false">
+						<Panel class="ts-artbox" hittest="false">
+							<Panel id="ts_0_art" class="ts-art" hittest="false" />
+						</Panel>
+						<Panel class="ts-main" hittest="false">
+							<Label class="ts-eyebrow" hittest="false" text="{s:ts_0_eyebrow}" />
+							<Label class="ts-title" hittest="false" text="{s:ts_0_title}" />
+							<Label class="ts-sub" hittest="false" text="{s:ts_0_sub}" />
+							<Panel class="ts-chips" hittest="false">
+								<Label id="ts_0_c0" class="ts-chip" hittest="false" text="{s:ts_0_c0}" />
+								<Label id="ts_0_c1" class="ts-chip" hittest="false" text="{s:ts_0_c1}" />
+								<Label id="ts_0_c2" class="ts-chip" hittest="false" text="{s:ts_0_c2}" />
+								<Label id="ts_0_c3" class="ts-chip" hittest="false" text="{s:ts_0_c3}" />
+								<Label id="ts_0_c4" class="ts-chip" hittest="false" text="{s:ts_0_c4}" />
+								<Label id="ts_0_c5" class="ts-chip" hittest="false" text="{s:ts_0_c5}" />
+							</Panel>
+						</Panel>
+					</Panel>
+					<Panel class="ts-track" hittest="false">
+						<Panel id="ts_0_bar" class="ts-bar" hittest="false" />
+					</Panel>
+				</Panel>
+				<Panel id="ts_1" class="ts hidden" hittest="false">
+					<Panel class="ts-row" hittest="false">
+						<Panel class="ts-artbox" hittest="false">
+							<Panel id="ts_1_art" class="ts-art" hittest="false" />
+						</Panel>
+						<Panel class="ts-main" hittest="false">
+							<Label class="ts-eyebrow" hittest="false" text="{s:ts_1_eyebrow}" />
+							<Label class="ts-title" hittest="false" text="{s:ts_1_title}" />
+							<Label class="ts-sub" hittest="false" text="{s:ts_1_sub}" />
+							<Panel class="ts-chips" hittest="false">
+								<Label id="ts_1_c0" class="ts-chip" hittest="false" text="{s:ts_1_c0}" />
+								<Label id="ts_1_c1" class="ts-chip" hittest="false" text="{s:ts_1_c1}" />
+								<Label id="ts_1_c2" class="ts-chip" hittest="false" text="{s:ts_1_c2}" />
+								<Label id="ts_1_c3" class="ts-chip" hittest="false" text="{s:ts_1_c3}" />
+								<Label id="ts_1_c4" class="ts-chip" hittest="false" text="{s:ts_1_c4}" />
+								<Label id="ts_1_c5" class="ts-chip" hittest="false" text="{s:ts_1_c5}" />
+							</Panel>
+						</Panel>
+					</Panel>
+					<Panel class="ts-track" hittest="false">
+						<Panel id="ts_1_bar" class="ts-bar" hittest="false" />
+					</Panel>
+				</Panel>
+				<Panel id="ts_2" class="ts hidden" hittest="false">
+					<Panel class="ts-row" hittest="false">
+						<Panel class="ts-artbox" hittest="false">
+							<Panel id="ts_2_art" class="ts-art" hittest="false" />
+						</Panel>
+						<Panel class="ts-main" hittest="false">
+							<Label class="ts-eyebrow" hittest="false" text="{s:ts_2_eyebrow}" />
+							<Label class="ts-title" hittest="false" text="{s:ts_2_title}" />
+							<Label class="ts-sub" hittest="false" text="{s:ts_2_sub}" />
+							<Panel class="ts-chips" hittest="false">
+								<Label id="ts_2_c0" class="ts-chip" hittest="false" text="{s:ts_2_c0}" />
+								<Label id="ts_2_c1" class="ts-chip" hittest="false" text="{s:ts_2_c1}" />
+								<Label id="ts_2_c2" class="ts-chip" hittest="false" text="{s:ts_2_c2}" />
+								<Label id="ts_2_c3" class="ts-chip" hittest="false" text="{s:ts_2_c3}" />
+								<Label id="ts_2_c4" class="ts-chip" hittest="false" text="{s:ts_2_c4}" />
+								<Label id="ts_2_c5" class="ts-chip" hittest="false" text="{s:ts_2_c5}" />
+							</Panel>
+						</Panel>
+					</Panel>
+					<Panel class="ts-track" hittest="false">
+						<Panel id="ts_2_bar" class="ts-bar" hittest="false" />
+					</Panel>
+				</Panel>
+				<Panel id="ts_3" class="ts hidden" hittest="false">
+					<Panel class="ts-row" hittest="false">
+						<Panel class="ts-artbox" hittest="false">
+							<Panel id="ts_3_art" class="ts-art" hittest="false" />
+						</Panel>
+						<Panel class="ts-main" hittest="false">
+							<Label class="ts-eyebrow" hittest="false" text="{s:ts_3_eyebrow}" />
+							<Label class="ts-title" hittest="false" text="{s:ts_3_title}" />
+							<Label class="ts-sub" hittest="false" text="{s:ts_3_sub}" />
+							<Panel class="ts-chips" hittest="false">
+								<Label id="ts_3_c0" class="ts-chip" hittest="false" text="{s:ts_3_c0}" />
+								<Label id="ts_3_c1" class="ts-chip" hittest="false" text="{s:ts_3_c1}" />
+								<Label id="ts_3_c2" class="ts-chip" hittest="false" text="{s:ts_3_c2}" />
+								<Label id="ts_3_c3" class="ts-chip" hittest="false" text="{s:ts_3_c3}" />
+								<Label id="ts_3_c4" class="ts-chip" hittest="false" text="{s:ts_3_c4}" />
+								<Label id="ts_3_c5" class="ts-chip" hittest="false" text="{s:ts_3_c5}" />
+							</Panel>
+						</Panel>
+					</Panel>
+					<Panel class="ts-track" hittest="false">
+						<Panel id="ts_3_bar" class="ts-bar" hittest="false" />
+					</Panel>
+				</Panel>
+			</Panel>
+
+		</Panel>
+	</Panel>
+</root>

@@ -10,6 +10,10 @@ namespace CS2_Poor_Duels
         public SoundsPath soundsPath { get; set; } = new();
         public CMDAlias cmdAlias { get; set; } = new();
 
+        /// <summary>The Panorama HUD (Hud/). Optional: a config without it gets the defaults in DuelsHudConfig.</summary>
+        [JsonPropertyName("Hud")]
+        public DuelsHudConfig Hud { get; set; } = new();
+
         [JsonPropertyName("DuelRounds")]
         public List<RoundType> DuelRounds { get; set; } = new()
     {

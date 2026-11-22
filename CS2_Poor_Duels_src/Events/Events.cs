@@ -125,7 +125,7 @@ namespace CS2_Poor_Duels
                         int roundId = _plugin.DuelManager!.GetRoundIndexByName("AWP");
                         if (roundId != -1)
                         {
-                            _plugin.PlayerManager!.SaveRoundPreference(player, roundId);
+                            _plugin.PlayerManager!.SaveRoundPreference(player, roundId, fromBuy: true);
                         }
                     }
                     else if (classname == "weapon_ssg08")
@@ -133,7 +133,7 @@ namespace CS2_Poor_Duels
                         int roundId = _plugin.DuelManager!.GetRoundIndexByName("Scout");
                         if (roundId != -1)
                         {
-                            _plugin.PlayerManager!.SaveRoundPreference(player, roundId);
+                            _plugin.PlayerManager!.SaveRoundPreference(player, roundId, fromBuy: true);
                         }
                     }
 
@@ -180,6 +180,7 @@ namespace CS2_Poor_Duels
 
             _plugin.QueueManager!.ClearEveryQueue();
             _plugin.ArenaManager!.ResetEveryArena();
+            _plugin.HudManager?.OnRoundStart();
 
             if (_plugin.PluginUtils!.IfWarmup())
             {
@@ -326,6 +327,7 @@ namespace CS2_Poor_Duels
             if (_plugin.QueueManager!._usedAfkCMD.Contains(player)) _plugin.QueueManager._usedAfkCMD.Remove(player);
             if (_plugin.QueueManager!._WaitingQueue.Contains(player)) _plugin.QueueManager._WaitingQueue.Remove(player);
             _plugin.QueueManager.RemoveWaitingPlayer(player);
+            _plugin.HudManager?.OnDisconnect(player.Slot);
 
             if (duel == null)
             {
@@ -359,6 +361,9 @@ namespace CS2_Poor_Duels
             _plugin.PluginExtensions!.DebugLogger($"PlayerDeath: Victim: {victim!.PlayerName}, Attacker: {attacker!.PlayerName}");
 
             _plugin.DuelManager.EndDuel(duel);
+
+            // The kill is counted by now: the card goes, or shows the result (Hud.ResultLine)
+            _plugin.HudManager?.DuelEnded(duel, victim);
 
             return HookResult.Continue;
         }

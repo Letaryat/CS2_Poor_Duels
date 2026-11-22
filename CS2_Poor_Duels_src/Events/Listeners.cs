@@ -38,6 +38,8 @@ namespace CS2_Poor_Duels
             if((player.Team == CsTeam.Terrorist || player.Team == CsTeam.CounterTerrorist) && !_plugin.QueueManager!._AfkPlayers.Contains(player) && targetTeam != 1)
             {
                 PluginExtensions.PlaySoundToClient(player, _plugin.Config.soundsPath.disabledSound);
+                // The refusal was only the sound; the toast says why
+                _plugin.HudManager?.SwitchRefused(player);
                 return HookResult.Stop;
             }
             return HookResult.Continue;
@@ -54,6 +56,8 @@ namespace CS2_Poor_Duels
 
         private void OnTick()
         {
+            _plugin.HudManager?.Tick();
+
             foreach (var duels in _plugin.DuelManager!.ActiveDuels)
             {
                 if (duels.Arena!.showCenterHTML)
@@ -63,16 +67,19 @@ namespace CS2_Poor_Duels
 
                     if (p1 == null || p2 == null) continue;
 
-                    p1.PrintToCenterHtml(
-                        $"{_plugin.Localizer["NowFighting", p2.PlayerName,
-                            _plugin.MutualScoring!.mutualScoring_[p1].Kills[p2],
-                            _plugin.MutualScoring!.mutualScoring_[p2].Kills[p1]]}"
-                    );
-                    p2.PrintToCenterHtml(
-                        $"{_plugin.Localizer["NowFighting", p1.PlayerName,
-                            _plugin.MutualScoring!.mutualScoring_[p2].Kills[p1],
-                            _plugin.MutualScoring!.mutualScoring_[p1].Kills[p2]]}"
-                    );
+                    // A player the HUD reaches has the "now fighting" card instead
+                    if (_plugin.HudManager?.CoversFight(p1) != true)
+                        p1.PrintToCenterHtml(
+                            $"{_plugin.Localizer["NowFighting", p2.PlayerName,
+                                _plugin.MutualScoring!.mutualScoring_[p1].Kills[p2],
+                                _plugin.MutualScoring!.mutualScoring_[p2].Kills[p1]]}"
+                        );
+                    if (_plugin.HudManager?.CoversFight(p2) != true)
+                        p2.PrintToCenterHtml(
+                            $"{_plugin.Localizer["NowFighting", p1.PlayerName,
+                                _plugin.MutualScoring!.mutualScoring_[p2].Kills[p1],
+                                _plugin.MutualScoring!.mutualScoring_[p1].Kills[p2]]}"
+                        );
                 }
 
             }
@@ -106,6 +113,9 @@ namespace CS2_Poor_Duels
 
         private void OnMapStart(string mapName)
         {
+            // The clock starts over on every map: cards and toasts from the last one go
+            _plugin.HudManager?.OnMapStart();
+
             _plugin.AddTimer(0.2f, () =>
             {
                 _plugin.CustomSpawnsManager!.InitializeCustomSpawnsManager();

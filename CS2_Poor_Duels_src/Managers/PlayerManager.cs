@@ -123,6 +123,32 @@ namespace CS2_Poor_Duels
             //_plugin.PluginExtensions!.DebugLogger($"Gave weapons to {player.PlayerName}: {primary}, {secondary}");
         }
 
+        /// <summary>
+        /// The weapon a player ends up holding in a round: the primary they get, or the secondary when there is no
+        /// primary. Mirrors GivePlayerWeapon without giving anything, for the HUD's weapon art. Null when the round
+        /// hands out neither.
+        /// </summary>
+        public string? RoundWeaponFor(CCSPlayerController player, int roundTypeId)
+        {
+            if (player == null || !player.IsValid) return null;
+            if (roundTypeId < 0 || roundTypeId >= _plugin.Config.DuelRounds.Count) return null;
+
+            var round = _plugin.Config.DuelRounds[roundTypeId];
+
+            var primary = round.forcePrimary
+                ? round.primaryWeapon
+                : CheckPlayerWeaponPreference(player, round.primaryWeapon!, true);
+
+            if (!string.IsNullOrEmpty(primary))
+                return primary;
+
+            var secondary = round.forceSecondary
+                ? round.secondaryWeapon
+                : CheckPlayerWeaponPreference(player, round.secondaryWeapon!, false);
+
+            return string.IsNullOrEmpty(secondary) ? null : secondary;
+        }
+
         private string CheckPlayerWeaponPreference(CCSPlayerController player, string defaultWeapon, bool isPrimary)
         {
             if (player == null || !player.IsValid)
@@ -159,18 +185,22 @@ namespace CS2_Poor_Duels
             if (_type == 0)
             {
                 _playerPreferences[sid].RifleWeapon = weapon;
-                PluginExtensions.SendChatMessage(_plugin, player, "RifleChanged", newWeapon);
+                if (_plugin.HudManager?.WeaponSaved(player, weapon, 0) != true)
+                    PluginExtensions.SendChatMessage(_plugin, player, "RifleChanged", newWeapon);
             }
             else if (_type == 1)
             {
                 _playerPreferences[sid].PistolWeapon = weapon;
-                PluginExtensions.SendChatMessage(_plugin, player, "PistolChanged", newWeapon);
+                if (_plugin.HudManager?.WeaponSaved(player, weapon, 1) != true)
+                    PluginExtensions.SendChatMessage(_plugin, player, "PistolChanged", newWeapon);
             }
             PluginExtensions.PlaySoundToClient(player, _plugin.Config.soundsPath.saveWeaponSound);
 
         }
 
-        public void SaveRoundPreference(CCSPlayerController p, int roundType)
+        /// <param name="fromBuy">The player bought the round's weapon outside that duel (OnWeaponCanAcquire). Only
+        /// changes what the HUD toast says.</param>
+        public void SaveRoundPreference(CCSPlayerController p, int roundType, bool fromBuy = false)
         {
             /* roundTypes
             0 - Rifles, 1 - Pistols, 2 - AWP, 3 - Scout
@@ -190,13 +220,15 @@ namespace CS2_Poor_Duels
             if (_playerPreferences[sid].RoundPreferences.Contains(roundType))
             {
                 _playerPreferences[sid].RoundPreferences.Remove(roundType);
-                PluginExtensions.SendChatMessage(_plugin, player, $"RoundPreferenceDisabled", [_plugin.Localizer["Disabled"], name.ToUpper()]);
+                if (_plugin.HudManager?.RoundToggled(player, roundType, false, fromBuy) != true)
+                    PluginExtensions.SendChatMessage(_plugin, player, $"RoundPreferenceDisabled", [_plugin.Localizer["Disabled"], name.ToUpper()]);
                 PluginExtensions.PlaySoundToClient(player, _plugin.Config.soundsPath.disabledSound);
             }
             else
             {
                 _playerPreferences[sid].RoundPreferences.Add(roundType);
-                PluginExtensions.SendChatMessage(_plugin, player, $"RoundPreferenceEnabled", [_plugin.Localizer["Enabled"], name.ToUpper()]);
+                if (_plugin.HudManager?.RoundToggled(player, roundType, true, fromBuy) != true)
+                    PluginExtensions.SendChatMessage(_plugin, player, $"RoundPreferenceEnabled", [_plugin.Localizer["Enabled"], name.ToUpper()]);
                 PluginExtensions.PlaySoundToClient(player, _plugin.Config.soundsPath.enabledSound);
             }
         }
