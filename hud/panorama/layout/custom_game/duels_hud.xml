@@ -51,7 +51,7 @@
 		  ts_N        show hidden | a-good a-bad a-warn (none = info) | wpn (weapon art) | has-chips
 		  ts_N_art    w-<weapon> | i-afk i-queue i-warn
 		  ts_N_cK     hidden | on | hit          (chip K: round on; hit = the one that changed)
-		  ts_N_bar    dur-3 dur-4 dur-5 dur-6 dur-8 | run
+		  ts_N_bar    s0..s50                    (2% a step, s50 = full; one fixed 0.3s glide, a step every 0.2s)
 	-->
 	<Panel class="hud-screen" hittest="false">
 		<Panel id="DuelsRoot" class="du-root" hittest="false">

@@ -15,9 +15,11 @@
     a moment before it shows, so it always has a resting place to slide in from.
 
     THE TOASTS are a column of four in the middle of one edge, sliding in from that edge. An unused one
-    is collapsed, so the column closes up on its own. The bar is one linear clip transition, like the
-    AFK card's: dur-N goes on with the content, "run" a moment later; both come off while the toast is
-    collapsed, so the bar is full again for the next one. clip survives a text write; width would not.
+    is collapsed, so the column closes up on its own. The bar is a clip ladder with one fixed glide,
+    like the AFK card's: s0..s50 and a 0.3s linear transition that no class changes, a new step every
+    0.2s while the toast is up, and back to full while it is collapsed. It replaced one long transition
+    (dur-N with the content, "run" a moment later), which did not draw in game: nothing has shown a
+    class-swapped transition-duration working there. clip survives a text write; width would not.
 
     WEAPONS are one class per weapon (w-ak47, w-awp, ...): the server cannot send an image path. Each
     icon is CS2's own equipment silhouette sized to its own artwork inside the box it is drawn in (80x26
@@ -54,7 +56,7 @@
     padding: 8px 16px 9px 14px;
     border-top: 2px solid #f0a531;
     world-blur: gaussian(8.0);
-    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ee2), to(#0b0f14ec));
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ec6), to(#0b0f14d0));
 
     opacity: 0;
     blur: gaussian(7.0);
@@ -261,7 +263,7 @@
     padding: 9px 16px 11px 16px;
     border-top: 2px solid #f0a531;
     world-blur: gaussian(8.0);
-    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ee2), to(#0b0f14ec));
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ec6), to(#0b0f14d0));
 
     opacity: 0;
     blur: gaussian(7.0);
@@ -439,7 +441,7 @@
     margin-bottom: 8px;
     border-left: 3px solid #9aa3ad;
     world-blur: gaussian(8.0);
-    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ee2), to(#0b0f14ec));
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ec6), to(#0b0f14d0));
 
     /* 340px clears the 300px column 20px from the edge, so it starts fully off screen. */
     opacity: 0;
@@ -569,8 +571,9 @@
     text-decoration: none;
 }
 
-/* The bar along the bottom edge. Full by default, with no transition, so taking "run" and the dur-N
-   class off snaps it back instead of animating. */
+/* The bar along the bottom edge: s0..s50 (2% a step, s50 full) on a clip with ONE fixed 0.3s linear
+   glide, which no class changes. Full by default. The plugin names a step every 0.2s while the toast
+   is up, aimed one glide ahead of the clock, so the fill keeps moving and reaches s0 as it leaves. */
 .ts-track {
     width: 100%;
     height: 2px;
@@ -581,15 +584,60 @@
     background-color: #9aa3ad;
     clip: rect( 0%, 100%, 100%, 0% );
     transition-property: clip;
-    transition-duration: 0.0s;
+    transition-duration: 0.3s;
     transition-timing-function: linear;
 }
-.ts-bar.dur-3 { transition-duration: 3.0s; }
-.ts-bar.dur-4 { transition-duration: 4.0s; }
-.ts-bar.dur-5 { transition-duration: 5.0s; }
-.ts-bar.dur-6 { transition-duration: 6.0s; }
-.ts-bar.dur-8 { transition-duration: 8.0s; }
-.ts-bar.run { clip: rect( 0%, 0%, 100%, 0% ); }
+.ts-bar.s0 { clip: rect( 0%, 0%, 100%, 0% ); }
+.ts-bar.s1 { clip: rect( 0%, 2%, 100%, 0% ); }
+.ts-bar.s2 { clip: rect( 0%, 4%, 100%, 0% ); }
+.ts-bar.s3 { clip: rect( 0%, 6%, 100%, 0% ); }
+.ts-bar.s4 { clip: rect( 0%, 8%, 100%, 0% ); }
+.ts-bar.s5 { clip: rect( 0%, 10%, 100%, 0% ); }
+.ts-bar.s6 { clip: rect( 0%, 12%, 100%, 0% ); }
+.ts-bar.s7 { clip: rect( 0%, 14%, 100%, 0% ); }
+.ts-bar.s8 { clip: rect( 0%, 16%, 100%, 0% ); }
+.ts-bar.s9 { clip: rect( 0%, 18%, 100%, 0% ); }
+.ts-bar.s10 { clip: rect( 0%, 20%, 100%, 0% ); }
+.ts-bar.s11 { clip: rect( 0%, 22%, 100%, 0% ); }
+.ts-bar.s12 { clip: rect( 0%, 24%, 100%, 0% ); }
+.ts-bar.s13 { clip: rect( 0%, 26%, 100%, 0% ); }
+.ts-bar.s14 { clip: rect( 0%, 28%, 100%, 0% ); }
+.ts-bar.s15 { clip: rect( 0%, 30%, 100%, 0% ); }
+.ts-bar.s16 { clip: rect( 0%, 32%, 100%, 0% ); }
+.ts-bar.s17 { clip: rect( 0%, 34%, 100%, 0% ); }
+.ts-bar.s18 { clip: rect( 0%, 36%, 100%, 0% ); }
+.ts-bar.s19 { clip: rect( 0%, 38%, 100%, 0% ); }
+.ts-bar.s20 { clip: rect( 0%, 40%, 100%, 0% ); }
+.ts-bar.s21 { clip: rect( 0%, 42%, 100%, 0% ); }
+.ts-bar.s22 { clip: rect( 0%, 44%, 100%, 0% ); }
+.ts-bar.s23 { clip: rect( 0%, 46%, 100%, 0% ); }
+.ts-bar.s24 { clip: rect( 0%, 48%, 100%, 0% ); }
+.ts-bar.s25 { clip: rect( 0%, 50%, 100%, 0% ); }
+.ts-bar.s26 { clip: rect( 0%, 52%, 100%, 0% ); }
+.ts-bar.s27 { clip: rect( 0%, 54%, 100%, 0% ); }
+.ts-bar.s28 { clip: rect( 0%, 56%, 100%, 0% ); }
+.ts-bar.s29 { clip: rect( 0%, 58%, 100%, 0% ); }
+.ts-bar.s30 { clip: rect( 0%, 60%, 100%, 0% ); }
+.ts-bar.s31 { clip: rect( 0%, 62%, 100%, 0% ); }
+.ts-bar.s32 { clip: rect( 0%, 64%, 100%, 0% ); }
+.ts-bar.s33 { clip: rect( 0%, 66%, 100%, 0% ); }
+.ts-bar.s34 { clip: rect( 0%, 68%, 100%, 0% ); }
+.ts-bar.s35 { clip: rect( 0%, 70%, 100%, 0% ); }
+.ts-bar.s36 { clip: rect( 0%, 72%, 100%, 0% ); }
+.ts-bar.s37 { clip: rect( 0%, 74%, 100%, 0% ); }
+.ts-bar.s38 { clip: rect( 0%, 76%, 100%, 0% ); }
+.ts-bar.s39 { clip: rect( 0%, 78%, 100%, 0% ); }
+.ts-bar.s40 { clip: rect( 0%, 80%, 100%, 0% ); }
+.ts-bar.s41 { clip: rect( 0%, 82%, 100%, 0% ); }
+.ts-bar.s42 { clip: rect( 0%, 84%, 100%, 0% ); }
+.ts-bar.s43 { clip: rect( 0%, 86%, 100%, 0% ); }
+.ts-bar.s44 { clip: rect( 0%, 88%, 100%, 0% ); }
+.ts-bar.s45 { clip: rect( 0%, 90%, 100%, 0% ); }
+.ts-bar.s46 { clip: rect( 0%, 92%, 100%, 0% ); }
+.ts-bar.s47 { clip: rect( 0%, 94%, 100%, 0% ); }
+.ts-bar.s48 { clip: rect( 0%, 96%, 100%, 0% ); }
+.ts-bar.s49 { clip: rect( 0%, 98%, 100%, 0% ); }
+.ts-bar.s50 { clip: rect( 0%, 100%, 100%, 0% ); }
 
 /* Accents: none is the grey info toast. */
 .ts.a-good { border-left-color: #4caf6d; }

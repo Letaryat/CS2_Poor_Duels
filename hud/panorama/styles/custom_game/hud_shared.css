@@ -104,14 +104,15 @@
     rendering artefact.
 
     world-blur is what blurs the 3D scene behind the card. The alpha has to stay well under ff or
-    there is nothing to see through.
+    there is nothing to see through. c6 to d0 is the level the owner picked on the round picker
+    (2026-11-22, "a bit less black"); every layout's own card follows it.
 */
 .hud-card {
     border-left: 3px solid #f0a531;
     /* world-blur reaches the 3D scene; background-blur only blurs UI behind UI and does nothing
        here. Valve uses world-blur on every blurred HUD panel in the game. */
     world-blur: gaussian(8.0);
-    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ee2), to(#0b0f14ec));
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ec6), to(#0b0f14d0));
 }
 
 /*

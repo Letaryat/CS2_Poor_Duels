@@ -88,7 +88,13 @@ namespace CS2_Poor_Duels.Hud
     ///
     /// <para><b>A class turned off and on again needs 0.3s or more to reach the client</b> (runtime-behaviour.md):
     /// a card that goes and comes back as something else waits <see cref="ReshowSeconds"/>, and a toast slot that
-    /// was just emptied waits as long before its bar runs again.</para>
+    /// was just emptied waits as long, for its bar to glide back to full.</para>
+    ///
+    /// <para><b>A toast's bar is a clip ladder with one fixed glide.</b> duels_hud.css carries s0..s50 (2% a step)
+    /// on a clip with a 0.3s linear transition that no class changes, and <see cref="TickBar"/> names the step for
+    /// where the toast will be one glide from now, every <see cref="BarEverySeconds"/>. It replaced one long
+    /// transition per toast (dur-N with the content, "run" with "show"), which did not draw in game: nothing has
+    /// shown a class-swapped transition-duration working there.</para>
     ///
     /// <para>This class only draws. What to show, and when, is <see cref="HudManager"/>'s call.</para>
     /// </summary>
@@ -108,7 +114,8 @@ namespace CS2_Poor_Duels.Hud
         /// <summary>The exit transition, before a panel collapses.</summary>
         private const float ExitSeconds = 0.35f;
 
-        /// <summary>"show" (or a toast's "run") off, wait, on: a restart sooner than about 0.3s does not arrive.</summary>
+        /// <summary>"show" off, wait, on: a restart sooner than about 0.3s does not arrive. Also how long an emptied
+        /// toast slot waits before it shows again, so its bar has glided back to full.</summary>
         private const float ReshowSeconds = 0.35f;
 
         private const int ToastSlots = 4;
@@ -130,8 +137,18 @@ namespace CS2_Poor_Duels.Hud
         private static readonly string[] Accents = ["a-good", "a-bad", "a-warn"];
         private static readonly string[] TugSteps = [.. Enumerable.Range(0, 21).Select(i => $"p{i}")];
 
-        /// <summary>The dur-N classes the toast bar has.</summary>
-        private static readonly int[] BarDurations = [3, 4, 5, 6, 8];
+        /// <summary>s0..s50 on a toast bar in duels_hud.css: 2% a step, s50 full.</summary>
+        private const int BarSteps = 50;
+
+        /// <summary>
+        /// The .ts-bar transition-duration in duels_hud.css. Every step is aimed this far ahead of the clock, so
+        /// the fill arrives where the toast is instead of trailing it, and reaches s0 as it leaves.
+        /// </summary>
+        private const float GlideSeconds = 0.3f;
+
+        /// <summary>How often a toast's bar gets its next step. Under <see cref="GlideSeconds"/>, so the fill never
+        /// stops between steps.</summary>
+        private const float BarEverySeconds = 0.2f;
 
         private sealed class CardPanel(string id, string artId)
         {
@@ -168,8 +185,14 @@ namespace CS2_Poor_Duels.Hud
             public float Until = -1;
             public float CollapseAt = -1;
 
-            /// <summary>When the bar last went back to full ("run" off).</summary>
+            /// <summary>When the bar was last sent back to full.</summary>
             public float BarResetAt = -1000;
+
+            /// <summary>The s- step on the bar as last written (-1 = none), so the next write can take it off again.</summary>
+            public int BarStep = -1;
+
+            /// <summary>When the bar may get its next step.</summary>
+            public float BarNextAt;
 
             public string? Art;
             public string? Accent;
@@ -340,6 +363,7 @@ namespace CS2_Poor_Duels.Hud
                     toast.Until = -1;
                     toast.CollapseAt = -1;
                     toast.BarResetAt = -1000;
+                    toast.BarNextAt = 0;
                     toast.Art = null;
                     toast.Accent = null;
                 }
@@ -396,7 +420,10 @@ namespace CS2_Poor_Duels.Hud
                     Paint(player, toast, toast.Spec);
                     Cls(player, toast.Id, "hidden", false);
                     Cls(player, toast.Id, "show", toast.Shown);
-                    Cls(player, $"{toast.Id}_bar", "run", toast.Shown);
+                    // The step as it stands; a kept entity has it already, which sends nothing
+                    if (toast.BarStep >= 0)
+                        Cls(player, $"{toast.Id}_bar", $"s{toast.BarStep}", true);
+                    toast.BarNextAt = 0;
                 }
                 else if (toast.CollapseAt >= 0)
                 {
@@ -407,7 +434,7 @@ namespace CS2_Poor_Duels.Hud
                 {
                     Cls(player, toast.Id, "hidden", true);
                     Cls(player, toast.Id, "show", false);
-                    ResetBar(player, toast);
+                    BarTo(player, toast, 1f);
                 }
             }
         }
@@ -591,11 +618,12 @@ namespace CS2_Poor_Duels.Hud
             Paint(player, toast, spec);
             Cls(player, toast.Id, "hidden", false);
 
-            // The bar went back to full when the slot emptied; "run" can only come back on 0.3s after that
+            // The bar was sent back to full when the slot emptied; it shows once the glide there has played
             toast.ShowAt = Math.Max(now + EntrySeconds, toast.BarResetAt + ReshowSeconds);
+            toast.BarNextAt = 0;
         }
 
-        /// <summary>Writes a toast's text and classes. The bar gets its duration now; "run" comes on with "show".</summary>
+        /// <summary>Writes a toast's text and classes. The bar starts moving once the toast shows.</summary>
         private void Paint(CCSPlayerController player, ToastSlot toast, ToastSpec spec)
         {
             var id = toast.Id;
@@ -634,10 +662,6 @@ namespace CS2_Poor_Duels.Hud
                     Cls(player, chipId, "hidden", true);
                 }
             }
-
-            var dur = BarDurations.OrderBy(d => Math.Abs(d - spec.Seconds)).First();
-            foreach (var d in BarDurations)
-                Cls(player, $"{id}_bar", $"dur-{d}", d == dur);
         }
 
         private void Retire(CCSPlayerController player, ToastSlot toast, float now)
@@ -662,18 +686,43 @@ namespace CS2_Poor_Duels.Hud
         {
             Cls(player, toast.Id, "hidden", true);
             Cls(player, toast.Id, "show", false);
-            ResetBar(player, toast);
+            // Out of sight now, so the bar can glide back to full for the next toast in this slot
+            BarTo(player, toast, 1f);
             toast.BarResetAt = now;
             toast.CollapseAt = -1;
             toast.Spec = null;
         }
 
-        /// <summary>Back to full, with no transition: the duration comes off with "run", in the same update.</summary>
-        private void ResetBar(CCSPlayerController player, ToastSlot toast)
+        /// <summary>
+        /// The drain: every <see cref="BarEverySeconds"/>, the step for where the toast will be one glide from now.
+        /// The glide outlasts the gap between steps, so the fill never stops, and the last steps before the toast
+        /// leaves are already s0.
+        /// </summary>
+        private void TickBar(CCSPlayerController player, ToastSlot toast, float now)
         {
-            foreach (var d in BarDurations)
-                Cls(player, $"{toast.Id}_bar", $"dur-{d}", false);
-            Cls(player, $"{toast.Id}_bar", "run", false);
+            if (toast.Spec == null || now < toast.BarNextAt)
+                return;
+
+            toast.BarNextAt = now + BarEverySeconds;
+            BarTo(player, toast, (toast.Until - now - GlideSeconds) / Math.Max(toast.Spec.Seconds, 0.1f));
+        }
+
+        /// <summary>
+        /// Turns on the s- step for <paramref name="fraction"/> (1 = full) and the previous one off; only a change is
+        /// written. Both writes land in one update, so the client never sees two steps on, which would paint
+        /// whichever the stylesheet lists last.
+        /// </summary>
+        private void BarTo(CCSPlayerController player, ToastSlot toast, float fraction)
+        {
+            var step = Math.Clamp((int)Math.Round(fraction * BarSteps, MidpointRounding.AwayFromZero), 0, BarSteps);
+            if (toast.BarStep == step)
+                return;
+
+            var id = $"{toast.Id}_bar";
+            if (toast.BarStep >= 0)
+                Cls(player, id, $"s{toast.BarStep}", false);
+            Cls(player, id, $"s{step}", true);
+            toast.BarStep = step;
         }
 
         // ------------------------------------------------------------------ the clock
@@ -759,14 +808,17 @@ namespace CS2_Poor_Duels.Hud
                 {
                     toast.ShowAt = -1;
                     Cls(player, toast.Id, "show", true);
-                    Cls(player, $"{toast.Id}_bar", "run", true);
                     toast.Shown = true;
                     toast.Until = now + toast.Spec.Seconds;
+                    toast.BarNextAt = 0;
                 }
                 else if (toast.Shown && now >= toast.Until)
                 {
                     Retire(player, toast, now);
                 }
+
+                if (toast.Shown)
+                    TickBar(player, toast, now);
 
                 if (toast.CollapseAt >= 0 && now >= toast.CollapseAt)
                     Collapse(player, toast, now);
