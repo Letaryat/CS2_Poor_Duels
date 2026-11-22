@@ -33,7 +33,10 @@ namespace CS2_Poor_Duels.Hud
         /// <summary>Result: won (green) or lost (red).</summary>
         public bool Won { get; init; }
 
-        /// <summary>Result: the number that just went up is yours (it pops).</summary>
+        /// <summary>Result: a number went up, so it pops. False after a suicide or a world death.</summary>
+        public bool Pop { get; init; }
+
+        /// <summary>Result: the number that went up is yours.</summary>
         public bool PopMine { get; init; }
 
         // face-off
@@ -813,7 +816,7 @@ namespace CS2_Poor_Duels.Hud
             var hasWeapon = spec.Kind is CardKind.Fight or CardKind.Result;
             SetArt(player, viewer.Du, hasWeapon ? spec.Weapon : NoWeapon);
 
-            if (pop && spec.Kind == CardKind.Result)
+            if (pop && spec.Kind == CardKind.Result && spec.Pop)
             {
                 // Ping-pong: the only restart a class diff can carry
                 if (spec.PopMine)

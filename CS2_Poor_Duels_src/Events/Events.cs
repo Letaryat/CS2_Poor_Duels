@@ -353,17 +353,24 @@ namespace CS2_Poor_Duels
                 return HookResult.Continue;
             }
 
-            if (attacker != null || attacker != victim)
+            // No attacker (world damage: a fall, a trigger hurt) or the victim himself (the kill command, his own
+            // grenade): the duel still ends, as a loss for the one who died. Only a kill by another player counts in
+            // the head-to-head score - MutualScoringOnDeath skips the rest on purpose. This used to read "||", which
+            // let a null attacker through to the log line below: a NullReferenceException there meant EndDuel never
+            // ran, and both players stayed in a duel that was over.
+            var killed = attacker != null && attacker.IsValid && attacker != victim;
+
+            if (killed)
             {
                 _plugin.MutualScoring!.MutualScoringOnDeath(attacker!, victim!);
             }
 
-            _plugin.PluginExtensions!.DebugLogger($"PlayerDeath: Victim: {victim!.PlayerName}, Attacker: {attacker!.PlayerName}");
+            _plugin.PluginExtensions!.DebugLogger($"PlayerDeath: Victim: {victim?.PlayerName}, Attacker: {(killed ? attacker!.PlayerName : attacker == victim ? "self" : "world")}");
 
             _plugin.DuelManager.EndDuel(duel);
 
             // The kill is counted by now: the card goes, or shows the result (Hud.ResultLine)
-            _plugin.HudManager?.DuelEnded(duel, victim);
+            _plugin.HudManager?.DuelEnded(duel, victim, killed ? attacker : null);
 
             return HookResult.Continue;
         }

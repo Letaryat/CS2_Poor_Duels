@@ -245,7 +245,9 @@ namespace CS2_Poor_Duels.Hud
         /// A duel ended in a death (after EndDuel). The "now fighting" card goes when the center HTML would have; with
         /// Hud.ResultLine on, both players get "Duel won" / "Duel lost" with the new score instead.
         /// </summary>
-        public void DuelEnded(PlayerDuelData duel, CCSPlayerController? victim)
+        /// <param name="killer">The player credited with the kill, or null for a suicide or a world death. Those still
+        /// end the duel as a loss for <paramref name="victim"/>, but no number goes up, so nothing pops.</param>
+        public void DuelEnded(PlayerDuelData duel, CCSPlayerController? victim, CCSPlayerController? killer)
         {
             if (!CardOn || duel.player1 is not { IsValid: true } p1 || duel.player2 is not { IsValid: true } p2)
                 return;
@@ -262,11 +264,16 @@ namespace CS2_Poor_Duels.Hud
             }
 
             var roundIndex = duel.Arena?.roundType ?? -1;
-            ResultCard(p1, p2, p1.Slot != victim.Slot, roundIndex);
-            ResultCard(p2, p1, p2.Slot != victim.Slot, roundIndex);
+            var winner = p1.Slot != victim.Slot ? p1 : p2;
+
+            // Only a kill by the other duel player changes the head-to-head
+            var counted = killer is { IsValid: true } && killer.Slot == winner.Slot;
+
+            ResultCard(p1, p2, p1.Slot == winner.Slot, counted, roundIndex);
+            ResultCard(p2, p1, p2.Slot == winner.Slot, counted, roundIndex);
         }
 
-        private void ResultCard(CCSPlayerController me, CCSPlayerController op, bool won, int roundIndex)
+        private void ResultCard(CCSPlayerController me, CCSPlayerController op, bool won, bool counted, int roundIndex)
         {
             if (!IsHuman(me))
                 return;
@@ -279,6 +286,7 @@ namespace CS2_Poor_Duels.Hud
             {
                 Kind = CardKind.Result,
                 Won = won,
+                Pop = counted,
                 PopMine = won,
                 Eyebrow = won ? Text("Hud.Result.Won", "Duel won") : Text("Hud.Result.Lost", "Duel lost"),
                 Title = Text("Hud.Result.Title", "vs {0}", NameOf(op)),
