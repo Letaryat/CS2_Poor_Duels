@@ -1,0 +1,139 @@
+name: release
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+# Pushes and manual runs share one group, so two of them can never read the same "latest release"
+# and both try to create the same tag. PRs get a group of their own - a PR run queued in the release
+# group would cancel a pending release run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || 'release' }}
+  cancel-in-progress: false
+
+env:
+  # CounterStrikeSharp loads plugins/<name>/<name>.dll, so the folder name must match the AssemblyName.
+  PLUGIN: CS2_Poor_Duels
+  PROJECT: CS2_Poor_Duels_src/CS2_Poor_Duels_src.csproj
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # GITHUB_TOKEN defaults to read-only on repos created since 2023, so creating a release fails
+    # with 403 unless this is granted explicitly.
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # net10.0: PanoramaManager (the HUD) targets it, and the servers run CounterStrikeSharp on .NET 10.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # A class library does not copy its NuGet dlls on build. CopyLocalLockFileAssemblies makes
+      # Dapper, MySqlConnector and PanoramaManager land in build-out so Stage can pick them. The toast
+      # API (lib/PanoramaManager.Toasts.Api.dll) is a Private=false reference and never lands there.
+      - name: Build
+        run: dotnet build "$PROJECT" -c Release --nologo -o build-out -p:CopyLocalLockFileAssemblies=true
+
+      # One folder, laid out exactly as it sits under addons/counterstrikesharp/plugins/.
+      # An allowlist on purpose: CounterStrikeSharp's own dlls must never ship next to the plugin, and
+      # no pdb or server config goes in. CS2_Poor_Duels_Api.dll is loaded from
+      # addons/counterstrikesharp/shared/ on the server - a second copy of the API next to the plugin
+      # means two types and the capability cast fails. maps/ holds the custom arena spawns the plugin
+      # reads from its own folder. PanoramaManager.dll is the HUD library, loaded from the plugin's
+      # own folder like in our other HUD plugins.
+      #
+      # workshop/ is the HUD layout for the workshop addon. It goes into the build artifact only, not
+      # into the release zip: the zip stays the plugin folder alone, as the mount expects it.
+      - name: Stage release layout
+        run: |
+          set -e
+          mkdir -p "out/$PLUGIN/maps"
+          cp "build-out/$PLUGIN.dll" "build-out/$PLUGIN.deps.json" "out/$PLUGIN/"
+          cp build-out/Dapper.dll build-out/MySqlConnector.dll build-out/PanoramaManager.dll "out/$PLUGIN/"
+          cp -r lang "out/$PLUGIN/"
+          cp customSpawns/maps/*.json "out/$PLUGIN/maps/"
+
+          mkdir -p out/workshop/panorama/layout/custom_game out/workshop/panorama/styles/custom_game
+          cp hud/panorama/layout/custom_game/*.xml out/workshop/panorama/layout/custom_game/
+          cp hud/panorama/styles/custom_game/*.css out/workshop/panorama/styles/custom_game/
+
+      - name: Verify the layout
+        run: |
+          set -e
+          test -f "out/$PLUGIN/$PLUGIN.dll"
+          test -f "out/$PLUGIN/$PLUGIN.deps.json"
+          test -f "out/$PLUGIN/Dapper.dll"
+          test -f "out/$PLUGIN/MySqlConnector.dll"
+          test -f "out/$PLUGIN/PanoramaManager.dll"
+          test -f "out/$PLUGIN/lang/en.json"
+          test -f out/workshop/panorama/layout/custom_game/duels_hud.xml
+          test -f out/workshop/panorama/styles/custom_game/duels_hud.css
+          test -f out/workshop/panorama/layout/custom_game/duels_menu.xml
+          test -f out/workshop/panorama/styles/custom_game/duels_menu.css
+          test -f out/workshop/panorama/styles/custom_game/hud_shared.css
+
+          # Stage only copies what it lists. A new package would build fine and then fail to load on
+          # the server, so refuse to go on until its dlls are added to Stage.
+          extra=$(grep -oE '<PackageReference Include="[^"]+"' "$PROJECT" | cut -d'"' -f2 | grep -vxE 'CounterStrikeSharp\.API|Dapper|MySqlConnector|PanoramaManager' || true)
+          if [ -n "$extra" ]; then
+            echo "::error::Unhandled PackageReference: $extra - add its dlls to the Stage step."
+            exit 1
+          fi
+
+          # The toast API must resolve from addons/counterstrikesharp/shared/. A copy next to the plugin
+          # gives it its own IToastApi type and the capability cast fails as if ToastService were not
+          # installed.
+          if find out -name 'PanoramaManager.Toasts.Api.dll' | grep -q .; then
+            echo "::error::PanoramaManager.Toasts.Api.dll was copied into the release - check Private=\"false\" on the reference."
+            exit 1
+          fi
+
+          find out -type f | sort
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PLUGIN }}
+          path: out/
+
+      # Everything below only on main (push or manual run). PRs build and stop.
+      - name: Work out the next version
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -e
+          # Highest v<N> across releases and tags, compared as numbers (v10 beats v9). Other tags
+          # (the upstream 0.3.7) are ignored. run_number is not used because it counts PR runs too.
+          releases=$(gh release list --limit 1000 --json tagName --jq '.[].tagName')
+          tags=$(git ls-remote --tags --refs origin | sed 's|.*refs/tags/||')
+          highest=$(printf '%s\n%s\n' "$releases" "$tags" | { grep -E '^v[0-9]+$' || true; } | sed 's/^v//' | sort -n | tail -1)
+          next=$(( ${highest:-0} + 1 ))
+
+          previous=${highest:+v$highest}
+          echo "previous: ${previous:-none}  next: v${next}"
+          echo "tag=v${next}" >> "$GITHUB_OUTPUT"
+
+      - name: Package
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: cd out && zip -qr "../$PLUGIN-${{ steps.version.outputs.tag }}.zip" "$PLUGIN" -x '*.DS_Store'
+
+      - name: Release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "$PLUGIN-${{ steps.version.outputs.tag }}.zip" \
+            --target "${{ github.sha }}" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --generate-notes

@@ -1,7 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- net10.0 and CounterStrikeSharp.API 1.0.374 are PanoramaManager's floor: the package targets net10.0 and
+         declares that CSS version, so a lower pin fails restore with NU1605. The servers run CSS 1.0.380 on .NET 10. -->
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>CS2_Poor_Duels</RootNamespace>
     <AssemblyName>CS2_Poor_Duels</AssemblyName>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -9,12 +11,37 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CounterStrikeSharp.API" Version="1.0.367" />
-    <PackageReference Include="CS2MenuManager" Version="1.0.41" />
+    <PackageReference Include="CounterStrikeSharp.API" Version="1.0.374" />
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="MySqlConnector" Version="2.4.0" />
+
+    <!-- The duel card and the toasts (Hud/DuelsHud.cs). Copied next to the plugin by CopyPanoramaManager below:
+         each CounterStrikeSharp plugin loads from its own folder. Same version as our other HUD plugins. -->
+    <PackageReference Include="PanoramaManager" Version="0.4.3" />
+
+    <!-- Optional dependency, for Hud.ToastStyle "service" (Hud/ToastBridge.cs). Compile-time only, and absent at
+         runtime on a server without ToastService. The copy in lib/ is the same build as the one in
+         addons/counterstrikesharp/shared/PanoramaManager.Toasts.Api/ on the servers.
+         Private=false: the toast API must resolve from shared/ so this plugin and ToastService agree on the
+         IToastApi type. A private copy next to the plugin gives it its own type and the capability cast fails as
+         if ToastService were not installed. -->
+    <Reference Include="PanoramaManager.Toasts.Api">
+      <HintPath>..\lib\PanoramaManager.Toasts.Api.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
     <ProjectReference Include="../CS2_Poor_Duels_Api/CS2_Poor_Duels_Api.csproj">
       <Private>false</Private>
     </ProjectReference>
   </ItemGroup>
+
+  <!-- A class library does not copy package dlls on build, and turning CopyLocalLockFileAssemblies on would copy
+       CounterStrikeSharp.API's whole tree. This copies PanoramaManager only. (The release workflow builds with
+       CopyLocalLockFileAssemblies for Dapper and MySqlConnector, and picks the dlls it ships by name.) -->
+  <Target Name="CopyPanoramaManager" AfterTargets="ResolveLockFileCopyLocalFiles">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Include="@(RuntimeCopyLocalItems)"
+                               Condition="'%(RuntimeCopyLocalItems.NuGetPackageId)' == 'PanoramaManager'" />
+    </ItemGroup>
+  </Target>
 </Project>

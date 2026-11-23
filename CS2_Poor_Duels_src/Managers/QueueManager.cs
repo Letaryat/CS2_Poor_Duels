@@ -36,7 +36,8 @@ namespace CS2_Poor_Duels
                 _WaitingQueue.Add(player);
                 _plugin.PluginExtensions!.DebugLogger($"Added {player.PlayerName} to queue (total: {_WaitingQueue.Count})");
 
-                PluginExtensions.SendChatMessage(_plugin, player, "AddedToQueue");
+                // Suppressed: chat spammed on every duel-end re-queue. Re-enable if gated to first add only.
+                // PluginExtensions.SendChatMessage(_plugin, player, "AddedToQueue");
 
                 _plugin.AddTimer(0.15f, () =>
                 {
@@ -101,7 +102,8 @@ namespace CS2_Poor_Duels
 
             _plugin.PluginExtensions!.SetPlayerClanTag(player, $"{_plugin.Localizer["AFKTag"]}");
 
-            PluginExtensions.SendChatMessage(_plugin, player, "AFK");
+            if (_plugin.HudManager?.Afk(player) != true)
+                PluginExtensions.SendChatMessage(_plugin, player, "AFK");
 
             _plugin.PluginExtensions!.DebugLogger($"Marked {player.PlayerName} as AFK (spectator)");
         }
@@ -115,7 +117,8 @@ namespace CS2_Poor_Duels
 
             _AfkPlayers.Remove(player);
             _plugin.PluginExtensions!.SetPlayerClanTag(player, "");
-            PluginExtensions.SendChatMessage(_plugin, player, "NotAFK");
+            if (_plugin.HudManager?.BackInQueue(player) != true)
+                PluginExtensions.SendChatMessage(_plugin, player, "NotAFK");
 
             AddPlayerToQueue(player);
             _plugin.PluginExtensions!.DebugLogger($"Unmarked {player.PlayerName} as AFK (joined queue)");

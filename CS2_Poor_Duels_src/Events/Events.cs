@@ -46,11 +46,12 @@ namespace CS2_Poor_Duels
 
             var aqquireMethod = hook.GetParam<AcquireMethod>(2);
 
-            var vdata = VirtualFunctions
-                .GetCSWeaponDataFromKeyFunc
-                .Invoke(-1, econ.ItemDefinitionIndex.ToString());
-
-            if (vdata == null) return HookResult.Continue;
+            // Resolve the weapon class name via our static map instead of
+            // VirtualFunctions.GetCSWeaponDataFromKeyFunc. That native call segfaults the
+            // server for non-weapon item def indexes (knife skins / equipment, e.g. 521, 526)
+            // and for some legitimate weapon indexes (e.g. 40 / ssg08) in this hook context.
+            if (!WeaponModels.DefIndexToClassName.TryGetValue(econ.ItemDefinitionIndex, out var classname))
+                return HookResult.Continue;
 
             if (player.IsBot && (aqquireMethod == AcquireMethod.Buy || aqquireMethod == AcquireMethod.BuyWithCtrl))
             {
@@ -66,7 +67,6 @@ namespace CS2_Poor_Duels
                 roundType = _plugin.Config.DuelRounds[playerArena!.roundType];
             }
 
-            var classname = vdata.Name;
             if (string.IsNullOrWhiteSpace(classname)) return HookResult.Continue;
 
             if (playerArena != null && roundType != null)
@@ -125,7 +125,7 @@ namespace CS2_Poor_Duels
                         int roundId = _plugin.DuelManager!.GetRoundIndexByName("AWP");
                         if (roundId != -1)
                         {
-                            _plugin.PlayerManager!.SaveRoundPreference(player, roundId);
+                            _plugin.PlayerManager!.SaveRoundPreference(player, roundId, fromBuy: true);
                         }
                     }
                     else if (classname == "weapon_ssg08")
@@ -133,7 +133,7 @@ namespace CS2_Poor_Duels
                         int roundId = _plugin.DuelManager!.GetRoundIndexByName("Scout");
                         if (roundId != -1)
                         {
-                            _plugin.PlayerManager!.SaveRoundPreference(player, roundId);
+                            _plugin.PlayerManager!.SaveRoundPreference(player, roundId, fromBuy: true);
                         }
                     }
 
@@ -180,6 +180,7 @@ namespace CS2_Poor_Duels
 
             _plugin.QueueManager!.ClearEveryQueue();
             _plugin.ArenaManager!.ResetEveryArena();
+            _plugin.HudManager?.OnRoundStart();
 
             if (_plugin.PluginUtils!.IfWarmup())
             {
@@ -274,23 +275,27 @@ namespace CS2_Poor_Duels
                 _plugin.QueueManager!.AddPlayerToQueue(player);
             }
 
+            // Skip background DB load for bots/HLTV. The original `||` was a logical bug — it was
+            // true for every non-(bot && HLTV) case, so bots and HLTV both ran the DB lookup.
+            if (player.IsBot || player.IsHLTV) return HookResult.Continue;
+
             var sid = player.SteamID;
+            if (sid == 0) return HookResult.Continue;
 
-            if (!player.IsBot || !player.IsHLTV)
+            // Pass only the steamid into the background task. CCSPlayerController properties must
+            // only be accessed on the main game thread; capturing the controller and reading
+            // player.IsValid / player.SteamID from Task.Run can crash the server.
+            Task.Run(async () =>
             {
-                Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        await _plugin.PlayerManager!.AddPlayerToPreferencesList(player, sid);
-                    }
-                    catch (Exception error)
-                    {
-                        _plugin.PluginExtensions.DebugLogger($"Error with connectfull {error}");
-                    }
-                });
-            }
-
+                    await _plugin.PlayerManager!.AddPlayerToPreferencesList(sid);
+                }
+                catch (Exception error)
+                {
+                    _plugin.PluginExtensions!.DebugLogger($"Error with connectfull {error}");
+                }
+            });
 
             return HookResult.Continue;
         }
@@ -322,6 +327,8 @@ namespace CS2_Poor_Duels
             if (_plugin.QueueManager!._usedAfkCMD.Contains(player)) _plugin.QueueManager._usedAfkCMD.Remove(player);
             if (_plugin.QueueManager!._WaitingQueue.Contains(player)) _plugin.QueueManager._WaitingQueue.Remove(player);
             _plugin.QueueManager.RemoveWaitingPlayer(player);
+            _plugin.HudManager?.OnDisconnect(player.Slot);
+            _plugin.MenuManager?.OnDisconnect(player.Slot);
 
             if (duel == null)
             {
@@ -347,14 +354,24 @@ namespace CS2_Poor_Duels
                 return HookResult.Continue;
             }
 
-            if (attacker != null || attacker != victim)
+            // No attacker (world damage: a fall, a trigger hurt) or the victim himself (the kill command, his own
+            // grenade): the duel still ends, as a loss for the one who died. Only a kill by another player counts in
+            // the head-to-head score - MutualScoringOnDeath skips the rest on purpose. This used to read "||", which
+            // let a null attacker through to the log line below: a NullReferenceException there meant EndDuel never
+            // ran, and both players stayed in a duel that was over.
+            var killed = attacker != null && attacker.IsValid && attacker != victim;
+
+            if (killed)
             {
                 _plugin.MutualScoring!.MutualScoringOnDeath(attacker!, victim!);
             }
 
-            _plugin.PluginExtensions!.DebugLogger($"PlayerDeath: Victim: {victim!.PlayerName}, Attacker: {attacker!.PlayerName}");
+            _plugin.PluginExtensions!.DebugLogger($"PlayerDeath: Victim: {victim?.PlayerName}, Attacker: {(killed ? attacker!.PlayerName : attacker == victim ? "self" : "world")}");
 
             _plugin.DuelManager.EndDuel(duel);
+
+            // The kill is counted by now: the card goes, or shows the result (Hud.ResultLine)
+            _plugin.HudManager?.DuelEnded(duel, victim, killed ? attacker : null);
 
             return HookResult.Continue;
         }

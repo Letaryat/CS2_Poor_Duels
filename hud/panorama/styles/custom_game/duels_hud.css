@@ -1,0 +1,767 @@
+/*
+    duels_hud - the Duels info card and toasts. Include hud_shared.vcss_c first.
+
+    A port of the approved review page (HudMenu/previews/duels/duels.src.html): the sizes, colors and
+    timing are the page's own 1080p numbers. Same family as the arena banner and the AFK card: the
+    hud_shared card, a 2px top edge in the accent, a mono eyebrow, a condensed title.
+
+    PLACEMENT is two root variants the plugin picks from its config (Hud.CardPosition, Hud.ToastSide):
+    card-top (78px down, under the score; the Duels servers run without a radar) or card-low (640px,
+    under the crosshair, where the old center text sat), and toasts-left or toasts-right. With neither
+    class on, the card sits at the top and the toasts on the left.
+
+    THE CARD slides down into place from above with a fade and a blur (up from below at card-low), and
+    leaves the same way when "show" comes off. It is collapsed ("hidden") while unused, and un-collapsed
+    a moment before it shows, so it always has a resting place to slide in from.
+
+    THE TOASTS are a column of four in the middle of one edge, sliding in from that edge. An unused one
+    is collapsed, so the column closes up on its own. The bar is a clip ladder with one fixed glide,
+    like the AFK card's: s0..s50 and a 0.3s linear transition that no class changes, a new step every
+    0.2s while the toast is up, and back to full while it is collapsed. It replaced one long transition
+    (dur-N with the content, "run" a moment later), which did not draw in game: nothing has shown a
+    class-swapped transition-duration working there. clip survives a text write; width would not.
+
+    WEAPONS are one class per weapon (w-ak47, w-awp, ...): the server cannot send an image path. Each
+    icon is CS2's own equipment silhouette sized to its own artwork inside the box it is drawn in (80x26
+    on the card, 50x16 on the face-off, 58x20 on a toast): the icons are all 32 tall but run from 1:1
+    (P2000) to 3.42:1 (AWP), so one shared size would crop the long guns or stretch the short ones.
+    Rasterized at twice the drawn size so 1440p and 4K stay sharp. w-none (no known weapon) is the
+    crosshair. All other icons are CS2's own (icons/ui/*), tinted with wash-color. Nothing new ships.
+
+    UNVERIFIED IN GAME, each with a harmless failure:
+      - blur in transition-property: if blur does not animate, a card is simply sharp at once.
+      - text-overflow: shrink on the names: if it does not shrink, a long name ends in an ellipsis.
+      - @keyframes (the waiting hourglass, the number pop on a result): without them they stand still.
+      - text-decoration: line-through on a chip that was switched off: without it the chip is only red.
+*/
+
+/* ------------------------------------------------------------------ root */
+
+/* Opened once per player and left open; every card and toast carries its own "show". */
+.du-root {
+    width: 100%;
+    height: 100%;
+    visibility: collapse;
+}
+.du-root.show { visibility: visible; }
+
+/* ------------------------------------------------------------------ the info card: banner */
+
+.du {
+    horizontal-align: center;
+    vertical-align: top;
+    margin-top: 78px;
+    min-width: 300px;
+    flow-children: right;
+    padding: 8px 16px 9px 14px;
+    border-top: 2px solid #f0a531;
+    world-blur: gaussian(8.0);
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ec6), to(#0b0f14d0));
+
+    opacity: 0;
+    blur: gaussian(7.0);
+    transform: translateY(-36px);
+    transition-property: opacity, transform, blur;
+    transition-duration: 0.3s, 0.34s, 0.3s;
+    transition-timing-function: ease-out, cubic-bezier( 0.2, 0.8, 0.25, 1.0 ), ease-out;
+}
+/* Entering is quicker than leaving: the transition on the state being entered is the one that plays. */
+.du.show {
+    opacity: 1;
+    blur: gaussian(0.0);
+    transform: translateY(0px);
+    transition-duration: 0.18s, 0.22s, 0.18s;
+}
+.card-low .du {
+    margin-top: 640px;
+    transform: translateY(32px);
+}
+.card-low .du.show { transform: translateY(0px); }
+
+/* The weapon box. The icon inside is sized per weapon, at the bottom, and centered in it. */
+.du-artbox {
+    width: 80px;
+    height: 26px;
+    vertical-align: center;
+}
+.du-art {
+    horizontal-align: center;
+    vertical-align: center;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    wash-color: #d7dce1;
+}
+
+.du-text {
+    flow-children: down;
+    vertical-align: center;
+    margin-left: 13px;
+}
+.du-eyebrow {
+    font-family: Stratum2 Mono;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 1.8px;
+    line-height: 12px;
+    color: #f0a531;
+    text-transform: uppercase;
+}
+/* The opponent's name. A long one shrinks to fit 230px, down to 15px, then ends in an ellipsis. */
+.du-title {
+    font-family: Stratum2 Medium Condensed;
+    font-size: 23px;
+    font-weight: bold;
+    letter-spacing: 0.4px;
+    line-height: 24px;
+    color: #ffffff;
+    margin-top: 1px;
+    max-width: 230px;
+    white-space: nowrap;
+    text-overflow: shrink min( 15px ) ellipsis;
+}
+.du-sub {
+    font-family: Stratum2 Regular;
+    font-size: 11.5px;
+    line-height: 14px;
+    color: #9aa2ac;
+    margin-top: 2px;
+    white-space: nowrap;
+}
+
+/* YOU 3 : 1 THEM - your kills on this opponent : theirs on you, this map. */
+.du-score {
+    flow-children: down;
+    vertical-align: center;
+    margin-left: 21px;
+}
+.du-nums {
+    flow-children: right;
+    horizontal-align: center;
+}
+.du-n {
+    font-family: Stratum2 Medium Condensed;
+    font-size: 31px;
+    font-weight: bold;
+    line-height: 30px;
+    min-width: 18px;
+    text-align: center;
+    vertical-align: bottom;
+}
+.du-me { color: #f0a531; }
+.du-op { color: #e8ebee; }
+.du-colon {
+    font-family: Stratum2 Medium Condensed;
+    font-size: 22px;
+    font-weight: bold;
+    line-height: 24px;
+    color: #5c646d;
+    margin: 0px 5px 1px 5px;
+    vertical-align: bottom;
+}
+.du-keys {
+    horizontal-align: center;
+    font-family: Stratum2 Mono;
+    font-size: 8px;
+    font-weight: bold;
+    letter-spacing: 1.4px;
+    line-height: 11px;
+    color: #6c747d;
+    margin-top: 3px;
+}
+
+/* The number that changed on a result pops. Restarts by swapping two names: removing and re-adding one
+   in a tick sends nothing. */
+@keyframes 'du-pop-a' { 0% { transform: scale3d(1.3, 1.3, 1.0); } 100% { transform: scale3d(1.0, 1.0, 1.0); } }
+@keyframes 'du-pop-b' { 0% { transform: scale3d(1.3, 1.3, 1.0); } 100% { transform: scale3d(1.0, 1.0, 1.0); } }
+.du-n.pop-a {
+    animation-name: du-pop-a;
+    animation-duration: 0.45s;
+    animation-timing-function: ease-out;
+    animation-iteration-count: 1;
+}
+.du-n.pop-b {
+    animation-name: du-pop-b;
+    animation-duration: 0.45s;
+    animation-timing-function: ease-out;
+    animation-iteration-count: 1;
+}
+
+/* ------------------------------------------------------------------ card states */
+
+/* Waiting, opponent left and no free arena: a square icon in the accent instead of a weapon, no score. */
+.du.st-wait .du-artbox,
+.du.st-left .du-artbox,
+.du.st-full .du-artbox {
+    width: 22px;
+    height: 22px;
+}
+.du.st-wait .du-score,
+.du.st-left .du-score,
+.du.st-full .du-score { visibility: collapse; }
+
+/* Waiting: alone on an arena until someone is free. The hourglass turns over now and then. */
+@keyframes 'du-flip' {
+    0% { transform: rotateZ( 0deg ); }
+    70% { transform: rotateZ( 0deg ); }
+    85% { transform: rotateZ( 180deg ); }
+    100% { transform: rotateZ( 180deg ); }
+}
+.du.st-wait { border-top-color: #9aa3ad; }
+.du.st-wait .du-eyebrow { color: #9aa3ad; }
+.du.st-wait .du-art {
+    background-image: url("s2r://panorama/images/icons/ui/hourglass.vsvg");
+    width: 22px;
+    height: 22px;
+    background-texture-size: 44px 44px;
+    wash-color: #9aa3ad;
+    animation-name: du-flip;
+    animation-duration: 2.4s;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}
+
+/* Opponent left: a disconnect or the opponent going to spectators, which the plugin treats the same. */
+.du.st-left .du-art {
+    background-image: url("s2r://panorama/images/icons/ui/disconnect.vsvg");
+    width: 22px;
+    height: 20px;
+    background-texture-size: 44px 40px;
+    wash-color: #f0a531;
+}
+
+/* No free arena: moved to spectators, out of the queue until a team is picked. */
+.du.st-full { border-top-color: #8b939c; }
+.du.st-full .du-eyebrow { color: #8b939c; }
+.du.st-full .du-art {
+    background-image: url("s2r://panorama/images/icons/ui/switch_teams_dead.vsvg");
+    width: 22px;
+    height: 22px;
+    background-texture-size: 44px 44px;
+    wash-color: #8b939c;
+}
+
+/* Result line (Hud.ResultLine, off by default): won in green, lost in red with their number in red. */
+.du.st-result.win { border-top-color: #4caf6d; }
+.du.st-result.win .du-eyebrow { color: #4caf6d; }
+.du.st-result.win .du-me { color: #4caf6d; }
+.du.st-result.loss { border-top-color: #e8543f; }
+.du.st-result.loss .du-eyebrow { color: #e8543f; }
+.du.st-result.loss .du-me { color: #e8ebee; }
+.du.st-result.loss .du-op { color: #e8543f; }
+
+/* ------------------------------------------------------------------ the info card: face-off */
+
+/* Now fighting only: both names in team colors (the plugin puts the two of you on opposite teams), the
+   score between them and a head-to-head bar. 452px, wider than the banner. */
+.df {
+    horizontal-align: center;
+    vertical-align: top;
+    margin-top: 78px;
+    width: 452px;
+    flow-children: down;
+    padding: 9px 16px 11px 16px;
+    border-top: 2px solid #f0a531;
+    world-blur: gaussian(8.0);
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ec6), to(#0b0f14d0));
+
+    opacity: 0;
+    blur: gaussian(7.0);
+    transform: translateY(-36px);
+    transition-property: opacity, transform, blur;
+    transition-duration: 0.3s, 0.34s, 0.3s;
+    transition-timing-function: ease-out, cubic-bezier( 0.2, 0.8, 0.25, 1.0 ), ease-out;
+}
+.df.show {
+    opacity: 1;
+    blur: gaussian(0.0);
+    transform: translateY(0px);
+    transition-duration: 0.18s, 0.22s, 0.18s;
+}
+.card-low .df {
+    margin-top: 640px;
+    transform: translateY(32px);
+}
+.card-low .df.show { transform: translateY(0px); }
+
+.df-top {
+    flow-children: right;
+    horizontal-align: center;
+}
+.df-artbox {
+    width: 50px;
+    height: 16px;
+    vertical-align: center;
+}
+.df-art {
+    horizontal-align: center;
+    vertical-align: center;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    wash-color: #aeb5bc;
+}
+.df-eyebrow {
+    font-family: Stratum2 Mono;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 1.8px;
+    line-height: 12px;
+    color: #f0a531;
+    text-transform: uppercase;
+    margin-left: 8px;
+    vertical-align: center;
+}
+
+.df-row {
+    flow-children: right;
+    horizontal-align: center;
+    margin-top: 5px;
+}
+.df-side {
+    width: 138px;
+    flow-children: down;
+    vertical-align: center;
+}
+.df-side-me .df-k,
+.df-side-me .df-name { horizontal-align: right; }
+.df-side-op { margin-left: 6px; }
+.df-k {
+    font-family: Stratum2 Mono;
+    font-size: 8px;
+    font-weight: bold;
+    letter-spacing: 1.4px;
+    line-height: 11px;
+    color: #6c747d;
+}
+.df-name {
+    font-family: Stratum2 Medium Condensed;
+    font-size: 21px;
+    font-weight: bold;
+    line-height: 23px;
+    max-width: 138px;
+    white-space: nowrap;
+    text-overflow: shrink min( 13px ) ellipsis;
+}
+.df-num {
+    font-family: Stratum2 Medium Condensed;
+    font-size: 34px;
+    font-weight: bold;
+    line-height: 34px;
+    width: 38px;
+    text-align: center;
+    color: #ffffff;
+    margin-left: 6px;
+    vertical-align: center;
+}
+.df-vs {
+    width: 18px;
+    height: 18px;
+    margin-left: 6px;
+    vertical-align: center;
+    background-image: url("s2r://panorama/images/icons/ui/vs_mask.vsvg");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-texture-size: 36px 36px;
+    wash-color: #5c646d;
+}
+
+/* The head-to-head bar: theirs underneath at 40%, yours on top from the left, a clip in 5% steps. */
+.df-tug {
+    width: 100%;
+    height: 3px;
+    margin-top: 9px;
+}
+.df-tug-op {
+    width: 100%;
+    height: 100%;
+    opacity: 0.4;
+}
+.df-tug-me {
+    width: 100%;
+    height: 100%;
+    clip: rect( 0%, 50%, 100%, 0% );
+    transition-property: clip;
+    transition-duration: 0.35s;
+    transition-timing-function: ease-out;
+}
+.df-tug-me.p0 { clip: rect( 0%, 0%, 100%, 0% ); }
+.df-tug-me.p1 { clip: rect( 0%, 5%, 100%, 0% ); }
+.df-tug-me.p2 { clip: rect( 0%, 10%, 100%, 0% ); }
+.df-tug-me.p3 { clip: rect( 0%, 15%, 100%, 0% ); }
+.df-tug-me.p4 { clip: rect( 0%, 20%, 100%, 0% ); }
+.df-tug-me.p5 { clip: rect( 0%, 25%, 100%, 0% ); }
+.df-tug-me.p6 { clip: rect( 0%, 30%, 100%, 0% ); }
+.df-tug-me.p7 { clip: rect( 0%, 35%, 100%, 0% ); }
+.df-tug-me.p8 { clip: rect( 0%, 40%, 100%, 0% ); }
+.df-tug-me.p9 { clip: rect( 0%, 45%, 100%, 0% ); }
+.df-tug-me.p10 { clip: rect( 0%, 50%, 100%, 0% ); }
+.df-tug-me.p11 { clip: rect( 0%, 55%, 100%, 0% ); }
+.df-tug-me.p12 { clip: rect( 0%, 60%, 100%, 0% ); }
+.df-tug-me.p13 { clip: rect( 0%, 65%, 100%, 0% ); }
+.df-tug-me.p14 { clip: rect( 0%, 70%, 100%, 0% ); }
+.df-tug-me.p15 { clip: rect( 0%, 75%, 100%, 0% ); }
+.df-tug-me.p16 { clip: rect( 0%, 80%, 100%, 0% ); }
+.df-tug-me.p17 { clip: rect( 0%, 85%, 100%, 0% ); }
+.df-tug-me.p18 { clip: rect( 0%, 90%, 100%, 0% ); }
+.df-tug-me.p19 { clip: rect( 0%, 95%, 100%, 0% ); }
+.df-tug-me.p20 { clip: rect( 0%, 100%, 100%, 0% ); }
+
+/* Team colors: you-t when you are the Terrorist this duel, you-ct when you are the CT. */
+.df.you-t .df-name-me { color: #e0b44a; }
+.df.you-t .df-name-op { color: #5b9bd5; }
+.df.you-t .df-tug-me { background-color: #e0b44a; }
+.df.you-t .df-tug-op { background-color: #5b9bd5; }
+.df.you-ct .df-name-me { color: #5b9bd5; }
+.df.you-ct .df-name-op { color: #e0b44a; }
+.df.you-ct .df-tug-me { background-color: #5b9bd5; }
+.df.you-ct .df-tug-op { background-color: #e0b44a; }
+
+/* ------------------------------------------------------------------ toasts */
+
+/* A column of four, centered on the left (default) or the right edge. */
+.ts-stack {
+    width: 300px;
+    flow-children: down;
+    horizontal-align: left;
+    vertical-align: center;
+    margin-left: 20px;
+    /* Let a toast slide in from outside the column; the default squish would start it at the column edge. */
+    overflow: noclip noclip;
+}
+.toasts-right .ts-stack {
+    horizontal-align: right;
+    margin-left: 0px;
+    margin-right: 20px;
+}
+
+.ts {
+    width: 100%;
+    flow-children: down;
+    margin-bottom: 8px;
+    border-left: 3px solid #9aa3ad;
+    world-blur: gaussian(8.0);
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ec6), to(#0b0f14d0));
+
+    /* 340px clears the 300px column 20px from the edge, so it starts fully off screen. */
+    opacity: 0;
+    blur: gaussian(7.0);
+    transform: translateX(-340px);
+    transition-property: opacity, transform, blur;
+    transition-duration: 0.26s, 0.3s, 0.26s;
+    transition-timing-function: ease-out, cubic-bezier( 0.2, 0.8, 0.25, 1.0 ), ease-out;
+}
+.toasts-right .ts { transform: translateX(340px); }
+.ts.show {
+    opacity: 1;
+    blur: gaussian(0.0);
+    transform: translateX(0px);
+    transition-duration: 0.16s, 0.2s, 0.16s;
+}
+.toasts-right .ts.show { transform: translateX(0px); }
+
+.ts-row {
+    width: 100%;
+    flow-children: right;
+    padding: 9px 12px 9px 11px;
+}
+
+/* An icon is 22x22; a weapon ("wpn") gets a 58x20 box, the icon sized per weapon at the bottom. */
+.ts-artbox {
+    width: 22px;
+    height: 22px;
+    vertical-align: center;
+}
+.ts.wpn .ts-artbox {
+    width: 58px;
+    height: 20px;
+}
+.ts-art {
+    horizontal-align: center;
+    vertical-align: center;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    wash-color: #9aa3ad;
+}
+.ts-art.i-afk {
+    background-image: url("s2r://panorama/images/icons/ui/player.vsvg");
+    width: 22px;
+    height: 22px;
+    background-texture-size: 44px 44px;
+}
+.ts-art.i-queue {
+    background-image: url("s2r://panorama/images/icons/ui/join_queue.vsvg");
+    width: 22px;
+    height: 22px;
+    background-texture-size: 44px 44px;
+}
+.ts-art.i-warn {
+    background-image: url("s2r://panorama/images/icons/ui/warning.vsvg");
+    width: 22px;
+    height: 22px;
+    background-texture-size: 44px 44px;
+}
+
+.ts-main {
+    width: fill-parent-flow(1.0);
+    flow-children: down;
+    margin-left: 11px;
+    vertical-align: center;
+}
+.ts-eyebrow {
+    font-family: Stratum2 Mono;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 1.6px;
+    line-height: 12px;
+    color: #9aa3ad;
+    text-transform: uppercase;
+}
+.ts-title {
+    width: 100%;
+    font-family: Stratum2 Medium Condensed;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 0.3px;
+    line-height: 20px;
+    color: #ffffff;
+    margin-top: 1px;
+}
+.ts-sub {
+    width: 100%;
+    font-family: Stratum2 Regular;
+    font-size: 11.5px;
+    line-height: 15px;
+    color: #9aa2ac;
+    margin-top: 2px;
+    white-space: normal;
+}
+
+/* Round chips: every round, on or off, the one that changed marked. Up to six; unused ones collapse. */
+.ts-chips {
+    flow-children: right;
+    margin-top: 6px;
+    visibility: collapse;
+}
+.ts.has-chips .ts-chips { visibility: visible; }
+.ts-chip {
+    font-family: Stratum2 Mono;
+    font-size: 8.5px;
+    font-weight: bold;
+    letter-spacing: 0.6px;
+    color: #6c747d;
+    background-color: #ffffff08;
+    padding: 3px 5px 3px 5px;
+    margin-right: 4px;
+}
+.ts-chip.on {
+    color: #d7dce1;
+    background-color: #ffffff16;
+}
+/* The round that was switched: green when on, red and struck through when off. */
+.ts-chip.hit {
+    color: #ff9a8a;
+    background-color: #e8543f2a;
+    text-decoration: line-through;
+}
+.ts-chip.hit.on {
+    color: #8fdca1;
+    background-color: #4caf6d2e;
+    text-decoration: none;
+}
+
+/* The bar along the bottom edge: s0..s50 (2% a step, s50 full) on a clip with ONE fixed 0.3s linear
+   glide, which no class changes. Full by default. The plugin names a step every 0.2s while the toast
+   is up, aimed one glide ahead of the clock, so the fill keeps moving and reaches s0 as it leaves. */
+.ts-track {
+    width: 100%;
+    height: 2px;
+}
+.ts-bar {
+    width: 100%;
+    height: 100%;
+    background-color: #9aa3ad;
+    clip: rect( 0%, 100%, 100%, 0% );
+    transition-property: clip;
+    transition-duration: 0.3s;
+    transition-timing-function: linear;
+}
+.ts-bar.s0 { clip: rect( 0%, 0%, 100%, 0% ); }
+.ts-bar.s1 { clip: rect( 0%, 2%, 100%, 0% ); }
+.ts-bar.s2 { clip: rect( 0%, 4%, 100%, 0% ); }
+.ts-bar.s3 { clip: rect( 0%, 6%, 100%, 0% ); }
+.ts-bar.s4 { clip: rect( 0%, 8%, 100%, 0% ); }
+.ts-bar.s5 { clip: rect( 0%, 10%, 100%, 0% ); }
+.ts-bar.s6 { clip: rect( 0%, 12%, 100%, 0% ); }
+.ts-bar.s7 { clip: rect( 0%, 14%, 100%, 0% ); }
+.ts-bar.s8 { clip: rect( 0%, 16%, 100%, 0% ); }
+.ts-bar.s9 { clip: rect( 0%, 18%, 100%, 0% ); }
+.ts-bar.s10 { clip: rect( 0%, 20%, 100%, 0% ); }
+.ts-bar.s11 { clip: rect( 0%, 22%, 100%, 0% ); }
+.ts-bar.s12 { clip: rect( 0%, 24%, 100%, 0% ); }
+.ts-bar.s13 { clip: rect( 0%, 26%, 100%, 0% ); }
+.ts-bar.s14 { clip: rect( 0%, 28%, 100%, 0% ); }
+.ts-bar.s15 { clip: rect( 0%, 30%, 100%, 0% ); }
+.ts-bar.s16 { clip: rect( 0%, 32%, 100%, 0% ); }
+.ts-bar.s17 { clip: rect( 0%, 34%, 100%, 0% ); }
+.ts-bar.s18 { clip: rect( 0%, 36%, 100%, 0% ); }
+.ts-bar.s19 { clip: rect( 0%, 38%, 100%, 0% ); }
+.ts-bar.s20 { clip: rect( 0%, 40%, 100%, 0% ); }
+.ts-bar.s21 { clip: rect( 0%, 42%, 100%, 0% ); }
+.ts-bar.s22 { clip: rect( 0%, 44%, 100%, 0% ); }
+.ts-bar.s23 { clip: rect( 0%, 46%, 100%, 0% ); }
+.ts-bar.s24 { clip: rect( 0%, 48%, 100%, 0% ); }
+.ts-bar.s25 { clip: rect( 0%, 50%, 100%, 0% ); }
+.ts-bar.s26 { clip: rect( 0%, 52%, 100%, 0% ); }
+.ts-bar.s27 { clip: rect( 0%, 54%, 100%, 0% ); }
+.ts-bar.s28 { clip: rect( 0%, 56%, 100%, 0% ); }
+.ts-bar.s29 { clip: rect( 0%, 58%, 100%, 0% ); }
+.ts-bar.s30 { clip: rect( 0%, 60%, 100%, 0% ); }
+.ts-bar.s31 { clip: rect( 0%, 62%, 100%, 0% ); }
+.ts-bar.s32 { clip: rect( 0%, 64%, 100%, 0% ); }
+.ts-bar.s33 { clip: rect( 0%, 66%, 100%, 0% ); }
+.ts-bar.s34 { clip: rect( 0%, 68%, 100%, 0% ); }
+.ts-bar.s35 { clip: rect( 0%, 70%, 100%, 0% ); }
+.ts-bar.s36 { clip: rect( 0%, 72%, 100%, 0% ); }
+.ts-bar.s37 { clip: rect( 0%, 74%, 100%, 0% ); }
+.ts-bar.s38 { clip: rect( 0%, 76%, 100%, 0% ); }
+.ts-bar.s39 { clip: rect( 0%, 78%, 100%, 0% ); }
+.ts-bar.s40 { clip: rect( 0%, 80%, 100%, 0% ); }
+.ts-bar.s41 { clip: rect( 0%, 82%, 100%, 0% ); }
+.ts-bar.s42 { clip: rect( 0%, 84%, 100%, 0% ); }
+.ts-bar.s43 { clip: rect( 0%, 86%, 100%, 0% ); }
+.ts-bar.s44 { clip: rect( 0%, 88%, 100%, 0% ); }
+.ts-bar.s45 { clip: rect( 0%, 90%, 100%, 0% ); }
+.ts-bar.s46 { clip: rect( 0%, 92%, 100%, 0% ); }
+.ts-bar.s47 { clip: rect( 0%, 94%, 100%, 0% ); }
+.ts-bar.s48 { clip: rect( 0%, 96%, 100%, 0% ); }
+.ts-bar.s49 { clip: rect( 0%, 98%, 100%, 0% ); }
+.ts-bar.s50 { clip: rect( 0%, 100%, 100%, 0% ); }
+
+/* Accents: none is the grey info toast. */
+.ts.a-good { border-left-color: #4caf6d; }
+.ts.a-good .ts-eyebrow { color: #4caf6d; }
+.ts.a-good .ts-bar { background-color: #4caf6d; }
+.ts.a-good .ts-art { wash-color: #4caf6d; }
+.ts.a-bad { border-left-color: #e8543f; }
+.ts.a-bad .ts-eyebrow { color: #e8543f; }
+.ts.a-bad .ts-bar { background-color: #e8543f; }
+.ts.a-bad .ts-art { wash-color: #e8543f; }
+.ts.a-warn { border-left-color: #f0a531; }
+.ts.a-warn .ts-eyebrow { color: #f0a531; }
+.ts.a-warn .ts-bar { background-color: #f0a531; }
+.ts.a-warn .ts-art { wash-color: #f0a531; }
+/* Weapon art stays light whatever the accent; more specific than the accent rules above. */
+.ts.wpn .ts-artbox .ts-art { wash-color: #d7dce1; }
+
+/* ------------------------------------------------------------------ weapons */
+
+/* No known weapon: the crosshair. */
+.du-art.w-none {
+    background-image: url("s2r://panorama/images/icons/ui/crosshair.vsvg");
+    width: 26px;
+    height: 26px;
+    background-texture-size: 52px 52px;
+}
+.df-art.w-none {
+    background-image: url("s2r://panorama/images/icons/ui/crosshair.vsvg");
+    width: 16px;
+    height: 16px;
+    background-texture-size: 32px 32px;
+}
+.ts-art.w-none {
+    background-image: url("s2r://panorama/images/icons/ui/crosshair.vsvg");
+    width: 20px;
+    height: 20px;
+    background-texture-size: 40px 40px;
+}
+
+/*
+    One rule per weapon per box, each sized to its own artwork: the viewBox width over 32, times the box
+    height, capped at the box width. With the panel matching the artwork, background-size: 100% 100% is
+    exact by construction. The set is every rifle, pistol and sniper the plugin knows (WeaponModels.cs).
+*/
+/* du-art: 80x26 box */
+.du-art.w-ak47          { width: 72px; height: 26px; background-texture-size: 144px 52px; }
+.du-art.w-m4a1_silencer { width: 78.5px; height: 26px; background-texture-size: 157px 52px; }
+.du-art.w-m4a1          { width: 64px; height: 26px; background-texture-size: 128px 52px; }
+.du-art.w-galilar       { width: 73.5px; height: 26px; background-texture-size: 147px 52px; }
+.du-art.w-famas         { width: 63px; height: 26px; background-texture-size: 126px 52px; }
+.du-art.w-sg556         { width: 73px; height: 26px; background-texture-size: 146px 52px; }
+.du-art.w-aug           { width: 61.5px; height: 26px; background-texture-size: 123px 52px; }
+.du-art.w-awp           { width: 80px; height: 23.5px; background-texture-size: 160px 47px; }
+.du-art.w-ssg08         { width: 80px; height: 25.5px; background-texture-size: 160px 51px; }
+.du-art.w-deagle        { width: 41px; height: 26px; background-texture-size: 82px 52px; }
+.du-art.w-glock         { width: 36.5px; height: 26px; background-texture-size: 73px 52px; }
+.du-art.w-usp_silencer  { width: 56.5px; height: 26px; background-texture-size: 113px 52px; }
+.du-art.w-hkp2000       { width: 26px; height: 26px; background-texture-size: 52px 52px; }
+.du-art.w-elite         { width: 55.5px; height: 26px; background-texture-size: 111px 52px; }
+.du-art.w-tec9          { width: 42.5px; height: 26px; background-texture-size: 85px 52px; }
+.du-art.w-p250          { width: 30.5px; height: 26px; background-texture-size: 61px 52px; }
+.du-art.w-cz75a         { width: 39px; height: 26px; background-texture-size: 78px 52px; }
+.du-art.w-fiveseven     { width: 31.5px; height: 26px; background-texture-size: 63px 52px; }
+.du-art.w-revolver      { width: 42.5px; height: 26px; background-texture-size: 85px 52px; }
+
+/* df-art: 50x16 box */
+.df-art.w-ak47          { width: 44px; height: 16px; background-texture-size: 88px 32px; }
+.df-art.w-m4a1_silencer { width: 48px; height: 16px; background-texture-size: 96px 32px; }
+.df-art.w-m4a1          { width: 39.5px; height: 16px; background-texture-size: 79px 32px; }
+.df-art.w-galilar       { width: 45px; height: 16px; background-texture-size: 90px 32px; }
+.df-art.w-famas         { width: 39px; height: 16px; background-texture-size: 78px 32px; }
+.df-art.w-sg556         { width: 45px; height: 16px; background-texture-size: 90px 32px; }
+.df-art.w-aug           { width: 38px; height: 16px; background-texture-size: 76px 32px; }
+.df-art.w-awp           { width: 50px; height: 14.5px; background-texture-size: 100px 29px; }
+.df-art.w-ssg08         { width: 50px; height: 16px; background-texture-size: 100px 32px; }
+.df-art.w-deagle        { width: 25.5px; height: 16px; background-texture-size: 51px 32px; }
+.df-art.w-glock         { width: 22.5px; height: 16px; background-texture-size: 45px 32px; }
+.df-art.w-usp_silencer  { width: 34.5px; height: 16px; background-texture-size: 69px 32px; }
+.df-art.w-hkp2000       { width: 16px; height: 16px; background-texture-size: 32px 32px; }
+.df-art.w-elite         { width: 34px; height: 16px; background-texture-size: 68px 32px; }
+.df-art.w-tec9          { width: 26px; height: 16px; background-texture-size: 52px 32px; }
+.df-art.w-p250          { width: 19px; height: 16px; background-texture-size: 38px 32px; }
+.df-art.w-cz75a         { width: 24px; height: 16px; background-texture-size: 48px 32px; }
+.df-art.w-fiveseven     { width: 19.5px; height: 16px; background-texture-size: 39px 32px; }
+.df-art.w-revolver      { width: 26px; height: 16px; background-texture-size: 52px 32px; }
+
+/* ts-art: 58x20 box */
+.ts-art.w-ak47          { width: 55.5px; height: 20px; background-texture-size: 111px 40px; }
+.ts-art.w-m4a1_silencer { width: 58px; height: 19px; background-texture-size: 116px 38px; }
+.ts-art.w-m4a1          { width: 49px; height: 20px; background-texture-size: 98px 40px; }
+.ts-art.w-galilar       { width: 56.5px; height: 20px; background-texture-size: 113px 40px; }
+.ts-art.w-famas         { width: 48.5px; height: 20px; background-texture-size: 97px 40px; }
+.ts-art.w-sg556         { width: 56px; height: 20px; background-texture-size: 112px 40px; }
+.ts-art.w-aug           { width: 47.5px; height: 20px; background-texture-size: 95px 40px; }
+.ts-art.w-awp           { width: 58px; height: 17px; background-texture-size: 116px 34px; }
+.ts-art.w-ssg08         { width: 58px; height: 18.5px; background-texture-size: 116px 37px; }
+.ts-art.w-deagle        { width: 31.5px; height: 20px; background-texture-size: 63px 40px; }
+.ts-art.w-glock         { width: 28px; height: 20px; background-texture-size: 56px 40px; }
+.ts-art.w-usp_silencer  { width: 43.5px; height: 20px; background-texture-size: 87px 40px; }
+.ts-art.w-hkp2000       { width: 20px; height: 20px; background-texture-size: 40px 40px; }
+.ts-art.w-elite         { width: 42.5px; height: 20px; background-texture-size: 85px 40px; }
+.ts-art.w-tec9          { width: 32.5px; height: 20px; background-texture-size: 65px 40px; }
+.ts-art.w-p250          { width: 23.5px; height: 20px; background-texture-size: 47px 40px; }
+.ts-art.w-cz75a         { width: 30px; height: 20px; background-texture-size: 60px 40px; }
+.ts-art.w-fiveseven     { width: 24.5px; height: 20px; background-texture-size: 49px 40px; }
+.ts-art.w-revolver      { width: 33px; height: 20px; background-texture-size: 66px 40px; }
+
+/* the pictures, once per weapon */
+.w-ak47          { background-image: url("s2r://panorama/images/icons/equipment/ak47.vsvg"); }
+.w-m4a1_silencer { background-image: url("s2r://panorama/images/icons/equipment/m4a1_silencer.vsvg"); }
+.w-m4a1          { background-image: url("s2r://panorama/images/icons/equipment/m4a1.vsvg"); }
+.w-galilar       { background-image: url("s2r://panorama/images/icons/equipment/galilar.vsvg"); }
+.w-famas         { background-image: url("s2r://panorama/images/icons/equipment/famas.vsvg"); }
+.w-sg556         { background-image: url("s2r://panorama/images/icons/equipment/sg556.vsvg"); }
+.w-aug           { background-image: url("s2r://panorama/images/icons/equipment/aug.vsvg"); }
+.w-awp           { background-image: url("s2r://panorama/images/icons/equipment/awp.vsvg"); }
+.w-ssg08         { background-image: url("s2r://panorama/images/icons/equipment/ssg08.vsvg"); }
+.w-deagle        { background-image: url("s2r://panorama/images/icons/equipment/deagle.vsvg"); }
+.w-glock         { background-image: url("s2r://panorama/images/icons/equipment/glock.vsvg"); }
+.w-usp_silencer  { background-image: url("s2r://panorama/images/icons/equipment/usp_silencer.vsvg"); }
+.w-hkp2000       { background-image: url("s2r://panorama/images/icons/equipment/hkp2000.vsvg"); }
+.w-elite         { background-image: url("s2r://panorama/images/icons/equipment/elite.vsvg"); }
+.w-tec9          { background-image: url("s2r://panorama/images/icons/equipment/tec9.vsvg"); }
+.w-p250          { background-image: url("s2r://panorama/images/icons/equipment/p250.vsvg"); }
+.w-cz75a         { background-image: url("s2r://panorama/images/icons/equipment/cz75a.vsvg"); }
+.w-fiveseven     { background-image: url("s2r://panorama/images/icons/equipment/fiveseven.vsvg"); }
+.w-revolver      { background-image: url("s2r://panorama/images/icons/equipment/revolver.vsvg"); }

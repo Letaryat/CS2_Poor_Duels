@@ -1,0 +1,401 @@
+<root>
+	<styles>
+		<include src="s2r://panorama/styles/custom_game/hud_shared.vcss_c" />
+		<include src="s2r://panorama/styles/custom_game/duels_menu.vcss_c" />
+	</styles>
+
+	<!--
+		Duels - the player menu. One card for !guns, !rifles, !pistols and !rounds (the loadout page), and the admin
+		arena tester, css_dtestarenas (the arenas page). Replaces the CS2MenuManager chat and WASD menus. Driven by
+		CS2_Poor_Duels_src/Hud/DuelsMenu.cs.
+
+		LOADOUT: the round types as toggles (art = the weapon the player would hold in that duel, the kit under the
+		name, ON / OFF), then a rifle and a pistol column: the weapon tiles with the saved one marked, and the round
+		types the choice is used in (rounds that do not force that slot). The command that opened it lights its own
+		section; the same command again closes it.
+
+		ARENAS: every custom arena on the map as a tile with two teleport buttons, 16 a page.
+
+		CONTRACT (DuelsMenu.cs must match)
+		  RootPanelId = "DuelsMenuRoot"   RevealClass = "show"   CloseButtonId = "dm_close"   RowCount = 0
+		  CaptureInput = true             HideHud = None         SharedText = false
+
+		The root is the full screen and draws nothing; the card inside has the reveal.
+
+		POOLS
+		  dm_r0..dm_r5                    round toggles, one row; the row's nN class sizes them
+		  dm_w0_0..dm_w0_11 (rifle)       weapon tiles, 3 rows of 4 (dm_c0_row0..2)
+		  dm_w1_0..dm_w1_11 (pistol)      weapon tiles, 3 rows of 4 (dm_c1_row0..2)
+		  dm_c0_u0..5, dm_c1_u0..5        "used in" round chips
+		  da_t0..da_t15                   arena tiles, 4 rows of 4 (da_row0..3)
+		  dm_cmd0..3                      footer commands
+
+		BUTTONS (PanelAction.Button, by id)
+		  dm_close                        close (the library handles it)
+		  dm_rN                           switch round type N on or off
+		  dm_w0_N / dm_w1_N               save rifle / pistol N
+		  da_tN_s1 / da_tN_s2             teleport to arena N's spawn 1 / 2
+		  da_prev da_next                 arena pages
+
+		DIALOG VARIABLES
+		  dm_title dm_tag dm_intro                                  header and intro
+		  dm_r_h dm_r_hint dm_on dm_off dm_rN_n dm_rN_k             rounds: head, hint, pills, name, kit
+		  dm_cN_t dm_cN_v dm_saved_k dm_use_k dm_cN_uM dm_cN_none   columns: title, saved weapon, labels, chips
+		  dm_wC_N                                                   weapon names
+		  da_tN_n da_k da_s1 da_s2                                  arena tiles
+		  dm_cmdN dm_cmd_tail dm_page                               footer
+
+		CLASSES THE SERVER TOGGLES
+		  dm          arenas (the arenas page) | f-rounds | f-rifle | f-pistol (the section asked for)
+		              paged (arena pages) | noarenas
+		  dm_rounds   n1 .. n6 (how many round tiles show) | big (four or fewer: bigger art)
+		  dm_rN       hidden | on | w-<weapon>
+		  dm_cN       unused (no round type uses it) | nosave (nothing saved yet)
+		  dm_cN_uM, dm_cN_rowR, dm_wC_N, da_rowR, da_tN, dm_cmdN   hidden
+		  dm_wC_N     saved | w-<weapon>
+		  w-<weapon>  ak47 m4a1_silencer m4a1 galilar famas sg556 aug awp ssg08 deagle glock usp_silencer hkp2000
+		              elite tec9 p250 cz75a fiveseven revolver; none of them = the crosshair
+	-->
+	<Panel class="hud-screen" hittest="false">
+		<Panel id="DuelsMenuRoot" class="dm-root" hittest="false">
+			<Panel id="dm" class="dm">
+
+				<!-- ======================================================= header -->
+				<Panel class="dm-head" hittest="false">
+					<Label class="dm-title" text="{s:dm_title}" hittest="false" />
+					<Label class="dm-tag" text="{s:dm_tag}" hittest="false" />
+					<Panel class="fill" hittest="false" />
+					<Button id="dm_close" class="hud-exit"><Label class="hud-x" text="&#x2715;" hittest="false" /></Button>
+				</Panel>
+
+				<Panel class="dm-intro" hittest="false">
+					<Label class="dm-in" text="{s:dm_intro}" hittest="false" />
+				</Panel>
+
+				<Panel class="dm-body" hittest="false">
+
+					<!-- ======================================================= loadout: rounds, rifle, pistol -->
+					<Panel class="dm-lo" hittest="false">
+						<Panel class="dm-sec-head" hittest="false">
+							<Label class="dm-sec-t" text="{s:dm_r_h}" hittest="false" />
+							<Panel class="fill" hittest="false" />
+							<Label class="dm-sec-hint" text="{s:dm_r_hint}" hittest="false" />
+						</Panel>
+						<Panel id="dm_rounds" class="dm-rounds" hittest="false">
+							<Button id="dm_r0" class="dm-r">
+								<Panel class="dm-r-in" hittest="false">
+									<Panel class="dm-r-art" hittest="false"><Panel class="dm-r-img" hittest="false" /></Panel>
+									<Panel class="dm-r-low" hittest="false">
+										<Label class="dm-r-name" text="{s:dm_r0_n}" hittest="false" />
+										<Label class="dm-r-pill dm-r-yes" text="{s:dm_on}" hittest="false" />
+										<Label class="dm-r-pill dm-r-no" text="{s:dm_off}" hittest="false" />
+									</Panel>
+									<Label class="dm-r-kit" text="{s:dm_r0_k}" hittest="false" />
+								</Panel>
+								<Panel class="dm-r-edge" hittest="false" />
+							</Button>
+							<Button id="dm_r1" class="dm-r">
+								<Panel class="dm-r-in" hittest="false">
+									<Panel class="dm-r-art" hittest="false"><Panel class="dm-r-img" hittest="false" /></Panel>
+									<Panel class="dm-r-low" hittest="false">
+										<Label class="dm-r-name" text="{s:dm_r1_n}" hittest="false" />
+										<Label class="dm-r-pill dm-r-yes" text="{s:dm_on}" hittest="false" />
+										<Label class="dm-r-pill dm-r-no" text="{s:dm_off}" hittest="false" />
+									</Panel>
+									<Label class="dm-r-kit" text="{s:dm_r1_k}" hittest="false" />
+								</Panel>
+								<Panel class="dm-r-edge" hittest="false" />
+							</Button>
+							<Button id="dm_r2" class="dm-r">
+								<Panel class="dm-r-in" hittest="false">
+									<Panel class="dm-r-art" hittest="false"><Panel class="dm-r-img" hittest="false" /></Panel>
+									<Panel class="dm-r-low" hittest="false">
+										<Label class="dm-r-name" text="{s:dm_r2_n}" hittest="false" />
+										<Label class="dm-r-pill dm-r-yes" text="{s:dm_on}" hittest="false" />
+										<Label class="dm-r-pill dm-r-no" text="{s:dm_off}" hittest="false" />
+									</Panel>
+									<Label class="dm-r-kit" text="{s:dm_r2_k}" hittest="false" />
+								</Panel>
+								<Panel class="dm-r-edge" hittest="false" />
+							</Button>
+							<Button id="dm_r3" class="dm-r">
+								<Panel class="dm-r-in" hittest="false">
+									<Panel class="dm-r-art" hittest="false"><Panel class="dm-r-img" hittest="false" /></Panel>
+									<Panel class="dm-r-low" hittest="false">
+										<Label class="dm-r-name" text="{s:dm_r3_n}" hittest="false" />
+										<Label class="dm-r-pill dm-r-yes" text="{s:dm_on}" hittest="false" />
+										<Label class="dm-r-pill dm-r-no" text="{s:dm_off}" hittest="false" />
+									</Panel>
+									<Label class="dm-r-kit" text="{s:dm_r3_k}" hittest="false" />
+								</Panel>
+								<Panel class="dm-r-edge" hittest="false" />
+							</Button>
+							<Button id="dm_r4" class="dm-r">
+								<Panel class="dm-r-in" hittest="false">
+									<Panel class="dm-r-art" hittest="false"><Panel class="dm-r-img" hittest="false" /></Panel>
+									<Panel class="dm-r-low" hittest="false">
+										<Label class="dm-r-name" text="{s:dm_r4_n}" hittest="false" />
+										<Label class="dm-r-pill dm-r-yes" text="{s:dm_on}" hittest="false" />
+										<Label class="dm-r-pill dm-r-no" text="{s:dm_off}" hittest="false" />
+									</Panel>
+									<Label class="dm-r-kit" text="{s:dm_r4_k}" hittest="false" />
+								</Panel>
+								<Panel class="dm-r-edge" hittest="false" />
+							</Button>
+							<Button id="dm_r5" class="dm-r">
+								<Panel class="dm-r-in" hittest="false">
+									<Panel class="dm-r-art" hittest="false"><Panel class="dm-r-img" hittest="false" /></Panel>
+									<Panel class="dm-r-low" hittest="false">
+										<Label class="dm-r-name" text="{s:dm_r5_n}" hittest="false" />
+										<Label class="dm-r-pill dm-r-yes" text="{s:dm_on}" hittest="false" />
+										<Label class="dm-r-pill dm-r-no" text="{s:dm_off}" hittest="false" />
+									</Panel>
+									<Label class="dm-r-kit" text="{s:dm_r5_k}" hittest="false" />
+								</Panel>
+								<Panel class="dm-r-edge" hittest="false" />
+							</Button>
+						</Panel>
+
+						<Panel class="dm-cols" hittest="false">
+						<Panel id="dm_c0" class="dm-col dm-col-rifle" hittest="false">
+							<Panel class="dm-col-head" hittest="false">
+								<Label class="dm-col-t" text="{s:dm_c0_t}" hittest="false" />
+								<Label class="dm-col-sk" text="{s:dm_saved_k}" hittest="false" />
+								<Label class="dm-col-sv" text="{s:dm_c0_v}" hittest="false" />
+							</Panel>
+							<Panel class="dm-col-use" hittest="false">
+								<Label class="dm-use-k" text="{s:dm_use_k}" hittest="false" />
+								<Label id="dm_c0_u0" class="dm-use" text="{s:dm_c0_u0}" hittest="false" />
+								<Label id="dm_c0_u1" class="dm-use" text="{s:dm_c0_u1}" hittest="false" />
+								<Label id="dm_c0_u2" class="dm-use" text="{s:dm_c0_u2}" hittest="false" />
+								<Label id="dm_c0_u3" class="dm-use" text="{s:dm_c0_u3}" hittest="false" />
+								<Label id="dm_c0_u4" class="dm-use" text="{s:dm_c0_u4}" hittest="false" />
+								<Label id="dm_c0_u5" class="dm-use" text="{s:dm_c0_u5}" hittest="false" />
+								<Label class="dm-use-none" text="{s:dm_c0_none}" hittest="false" />
+							</Panel>
+							<Panel class="dm-grid" hittest="false">
+								<Panel id="dm_c0_row0" class="dm-row" hittest="false">
+									<Button id="dm_w0_0" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_0}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w0_1" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_1}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w0_2" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_2}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w0_3" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_3}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+								</Panel>
+								<Panel id="dm_c0_row1" class="dm-row" hittest="false">
+									<Button id="dm_w0_4" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_4}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w0_5" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_5}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w0_6" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_6}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w0_7" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_7}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+								</Panel>
+								<Panel id="dm_c0_row2" class="dm-row" hittest="false">
+									<Button id="dm_w0_8" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_8}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w0_9" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_9}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w0_10" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_10}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w0_11" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w0_11}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+						</Panel>
+						<Panel id="dm_c1" class="dm-col dm-col-pistol" hittest="false">
+							<Panel class="dm-col-head" hittest="false">
+								<Label class="dm-col-t" text="{s:dm_c1_t}" hittest="false" />
+								<Label class="dm-col-sk" text="{s:dm_saved_k}" hittest="false" />
+								<Label class="dm-col-sv" text="{s:dm_c1_v}" hittest="false" />
+							</Panel>
+							<Panel class="dm-col-use" hittest="false">
+								<Label class="dm-use-k" text="{s:dm_use_k}" hittest="false" />
+								<Label id="dm_c1_u0" class="dm-use" text="{s:dm_c1_u0}" hittest="false" />
+								<Label id="dm_c1_u1" class="dm-use" text="{s:dm_c1_u1}" hittest="false" />
+								<Label id="dm_c1_u2" class="dm-use" text="{s:dm_c1_u2}" hittest="false" />
+								<Label id="dm_c1_u3" class="dm-use" text="{s:dm_c1_u3}" hittest="false" />
+								<Label id="dm_c1_u4" class="dm-use" text="{s:dm_c1_u4}" hittest="false" />
+								<Label id="dm_c1_u5" class="dm-use" text="{s:dm_c1_u5}" hittest="false" />
+								<Label class="dm-use-none" text="{s:dm_c1_none}" hittest="false" />
+							</Panel>
+							<Panel class="dm-grid" hittest="false">
+								<Panel id="dm_c1_row0" class="dm-row" hittest="false">
+									<Button id="dm_w1_0" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_0}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w1_1" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_1}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w1_2" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_2}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w1_3" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_3}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+								</Panel>
+								<Panel id="dm_c1_row1" class="dm-row" hittest="false">
+									<Button id="dm_w1_4" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_4}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w1_5" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_5}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w1_6" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_6}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w1_7" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_7}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+								</Panel>
+								<Panel id="dm_c1_row2" class="dm-row" hittest="false">
+									<Button id="dm_w1_8" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_8}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w1_9" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_9}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w1_10" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_10}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+									<Button id="dm_w1_11" class="dm-w"><Panel class="dm-w-in" hittest="false"><Panel class="dm-w-art" hittest="false"><Panel class="dm-w-img" hittest="false" /></Panel><Label class="dm-w-n" text="{s:dm_w1_11}" hittest="false" /></Panel><Panel class="dm-w-edge" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+						</Panel>
+						</Panel>
+					</Panel>
+
+					<!-- ======================================================= arenas (admin) -->
+					<Panel class="dm-ar" hittest="false">
+						<Panel class="dm-ar-grid" hittest="false">
+						<Panel id="da_row0" class="dm-ar-row" hittest="false">
+							<Panel id="da_t0" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t0_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t0_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t0_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t1" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t1_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t1_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t1_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t2" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t2_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t2_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t2_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t3" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t3_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t3_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t3_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+						</Panel>
+						<Panel id="da_row1" class="dm-ar-row" hittest="false">
+							<Panel id="da_t4" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t4_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t4_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t4_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t5" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t5_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t5_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t5_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t6" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t6_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t6_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t6_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t7" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t7_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t7_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t7_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+						</Panel>
+						<Panel id="da_row2" class="dm-ar-row" hittest="false">
+							<Panel id="da_t8" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t8_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t8_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t8_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t9" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t9_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t9_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t9_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t10" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t10_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t10_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t10_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t11" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t11_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t11_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t11_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+						</Panel>
+						<Panel id="da_row3" class="dm-ar-row" hittest="false">
+							<Panel id="da_t12" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t12_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t12_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t12_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t13" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t13_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t13_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t13_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t14" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t14_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t14_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t14_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+							<Panel id="da_t15" class="dm-a" hittest="false">
+								<Label class="dm-a-n" text="{s:da_t15_n}" hittest="false" />
+								<Label class="dm-a-k" text="{s:da_k}" hittest="false" />
+								<Panel class="dm-a-btns" hittest="false">
+									<Button id="da_t15_s1" class="dm-a-b"><Label class="dm-a-bl" text="{s:da_s1}" hittest="false" /></Button>
+									<Button id="da_t15_s2" class="dm-a-b dm-a-b2"><Label class="dm-a-bl" text="{s:da_s2}" hittest="false" /></Button>
+								</Panel>
+							</Panel>
+						</Panel>
+						</Panel>
+						<Label class="dm-ar-empty" text="{s:da_empty}" hittest="false" />
+					</Panel>
+
+				</Panel>
+
+				<!-- ======================================================= footer -->
+				<Panel class="dm-foot" hittest="false">
+					<Panel class="dm-cmds" hittest="false">
+					<Panel id="dm_cmd0" class="dm-cmd" hittest="false"><Label class="dm-cmd-s" text="!" hittest="false" /><Label class="dm-cmd-n" text="{s:dm_cmd0}" hittest="false" /></Panel>
+					<Panel id="dm_cmd1" class="dm-cmd" hittest="false"><Label class="dm-cmd-s" text="!" hittest="false" /><Label class="dm-cmd-n" text="{s:dm_cmd1}" hittest="false" /></Panel>
+					<Panel id="dm_cmd2" class="dm-cmd" hittest="false"><Label class="dm-cmd-s" text="!" hittest="false" /><Label class="dm-cmd-n" text="{s:dm_cmd2}" hittest="false" /></Panel>
+					<Panel id="dm_cmd3" class="dm-cmd" hittest="false"><Label class="dm-cmd-s" text="!" hittest="false" /><Label class="dm-cmd-n" text="{s:dm_cmd3}" hittest="false" /></Panel>
+						<Label class="dm-cmd-tail" text="{s:dm_cmd_tail}" hittest="false" />
+					</Panel>
+					<Panel class="dm-pager" hittest="false">
+						<Button id="da_prev" class="dm-pg"><Label class="dm-pg-l" text="&lt;" hittest="false" /></Button>
+						<Label class="dm-pg-t" text="{s:dm_page}" hittest="false" />
+						<Button id="da_next" class="dm-pg"><Label class="dm-pg-l" text="&gt;" hittest="false" /></Button>
+					</Panel>
+				</Panel>
+
+			</Panel>
+		</Panel>
+	</Panel>
+</root>

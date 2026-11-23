@@ -21,7 +21,6 @@
 ## [📌] Dependiencies
 - [Metamod](https://www.sourcemm.net/)
 - [CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp)  
-- [CS2MenuManager by Schwarper](https://github.com/schwarper/CS2MenuManager)
 
 ## [📌] Recommended plugins to use
 - Any RTV / MapChooser plugin that will listen if map changes to null and if it does, it changes to any map. Using mp_ignore_round_win_conditions 1 can make that happen a lot.
@@ -29,14 +28,13 @@
 ## [💖] Special thanks to:
 - [qstage](https://github.com/qstage/CS2-MutualScoringPlayers) - For Mutual Scoring Players. Basically yoinked the whole code for displaying player scores in html hud. 
 - [K4ryuu](https://github.com/K4ryuu?tab=repositories) - For CSS Arenas that were helpful while creating mine abomination,
-- [Schwarper](https://github.com/schwarper/CS2MenuManager) - For menu manager,
 - [CSS Discord](https://discord.gg/eAZU3guKWU) - Since I am sure that I yoinked something more but I could forgot as I am writing this readme,
 - Vibe coding in moments of doubt,
 
 ## [📝] Setup
 - Install Metamod & CounterStrikeSharp,
-- Install [CS2MenuManager by Schwarper](https://github.com/schwarper/CS2MenuManager),
 - Install this plugin,
+- Ship the HUD layouts in [hud/](hud/) to the clients (our workshop addon): the menus (!guns, !rounds, css_dtestarenas), the duel card and the toasts,
 - Configure database in config file,
 - Either use [custom spawnpoints](customSpawns/), create custom spawnpoints yourself or use maps that have a proper spawnpoints,
 

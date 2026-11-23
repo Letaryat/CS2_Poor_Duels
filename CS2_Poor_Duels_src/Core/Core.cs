@@ -1,6 +1,7 @@
 ﻿using CounterStrikeSharp.API.Core;
 using CS2_Poor_Duels.Utils;
 using CS2_Poor_Duels.Extensions;
+using CS2_Poor_Duels.Hud;
 
 namespace CS2_Poor_Duels.Core;
 
@@ -25,6 +26,7 @@ public partial class CS2_Poor_DuelsPlugin : BasePlugin, IPluginConfig<DuelsConfi
     public MenuManager? MenuManager { get; private set; }
     public MutualScoringFeature? MutualScoring { get; private set; }
     public ApiManager? ApiManager { get; private set; }
+    public HudManager? HudManager { get; private set; }
 
     public void OnConfigParsed(DuelsConfig config)
     {
@@ -48,6 +50,7 @@ public partial class CS2_Poor_DuelsPlugin : BasePlugin, IPluginConfig<DuelsConfi
         MenuManager = new MenuManager(this);
         ApiManager = new ApiManager(this);
         MutualScoring = new MutualScoringFeature(this);
+        HudManager = new HudManager(this);
 
         EventManager.RegisterEvents();
 
@@ -59,12 +62,30 @@ public partial class CS2_Poor_DuelsPlugin : BasePlugin, IPluginConfig<DuelsConfi
 
         ApiManager.InitializeAPI();
 
+        // The info card and the toasts. Off (Hud.Enabled false) or failing to start, every old line stays
+        HudManager.Load();
+
+        // The menus (!guns, !rounds, css_dtestarenas): a HUD of their own, whatever Hud.Enabled says
+        MenuManager.Load();
+
         PluginExtensions!.DebugLogger("Plugin loaded!");
     }
+
+    public override void OnAllPluginsLoaded(bool hotReload)
+    {
+        HudManager?.OnAllPluginsLoaded();
+    }
+
     public override void Unload(bool hotReload)
     {
         PluginExtensions!.DebugLogger("Plugin unloaded!");
-        
+
+        HudManager?.Dispose();
+        HudManager = null;
+
+        MenuManager?.Dispose();
+        MenuManager = null;
+
         Task.Run(PlayerManager!.SaveAllPlayersAsync).Wait();
     }
 

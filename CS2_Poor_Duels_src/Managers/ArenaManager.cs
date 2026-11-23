@@ -173,7 +173,9 @@ namespace CS2_Poor_Duels
             {
                 _plugin.PluginExtensions!.DebugLogger("No free arena for waiting player!");
 
-                PluginExtensions.SendChatMessage(_plugin, player, "ArenaNotFound");
+                // Before the team change: the AFK mark it causes checks for this card and stays quiet
+                if (_plugin.HudManager?.NoArena(player) != true)
+                    PluginExtensions.SendChatMessage(_plugin, player, "ArenaNotFound");
                 _plugin.PluginExtensions!.SetPlayerClanTag(player, $"{_plugin.Localizer["WaitingTag"]}");
                 player.ChangeTeam(CsTeam.Spectator);
                 return;
@@ -199,7 +201,8 @@ namespace CS2_Poor_Duels
 
                     _plugin.PlayerManager!.GivePlayerWeapon(player, 0);
 
-                    player.PrintToCenterAlert(_plugin.Localizer["EmptyArenaNotifier"]);
+                    if (_plugin.HudManager?.Waiting(player) != true)
+                        player.PrintToCenterAlert(_plugin.Localizer["EmptyArenaNotifier"]);
 
                     _plugin.PluginExtensions!.SetPlayerClanTag(player, $"{_plugin.Localizer["WaitingTag"]}");
                     _plugin.PluginExtensions!.DebugLogger($"Player {player.PlayerName} waiting on arena {arena.Id}");

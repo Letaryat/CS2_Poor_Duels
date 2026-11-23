@@ -1,0 +1,693 @@
+/*
+    duels_menu - the Duels player menu (!guns, !rifles, !pistols, !rounds) and the admin arena tester
+    (css_dtestarenas). Include hud_shared.vcss_c first. Driven by CS2_Poor_Duels_src/Hud/DuelsMenu.cs.
+
+    Same family as the round picker and /rank: a 760px card in the middle of the screen, the shared card level
+    (#12171ec6 to #0b0f14d0), the gold left edge, fill-only tiles, square corners, a mono eyebrow over condensed
+    names, no gradients on text. Hover is the client's own (:hover needs the input capture the menu holds); the
+    click is what reaches the server.
+
+    Fixed heights on every section: head 48 + intro 30 + body 394 + foot 35 = 507. Both pages use the same card.
+
+    WEAPONS are CS2's own equipment silhouettes, one w-<weapon> class on the tile (the server cannot send an image
+    path), each sized to its own artwork inside the box it is drawn in: the icons are all 32 tall but run from
+    1:1 (P2000) to 3.42:1 (AWP), so one shared size would crop the long guns or stretch the short ones. Drawn at
+    twice the size (background-texture-size) so 1440p and 4K stay sharp. No w- class is the crosshair. Nothing
+    new ships: every picture is already in the game.
+
+    UNVERIFIED IN GAME, each with a harmless failure:
+      - the art lifting on hover (transform): it simply stays put.
+*/
+
+/* ------------------------------------------------------------------ root and card */
+
+/* The full screen; draws nothing. The card carries the reveal. */
+.dm-root {
+    width: 100%;
+    height: 100%;
+}
+
+.dm {
+    width: 760px;
+    height: 507px;
+    horizontal-align: center;
+    vertical-align: center;
+    flow-children: down;
+    overflow: noclip;
+    border-left: 3px solid #f0a531;
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#12171ec6), to(#0b0f14d0));
+
+    opacity: 0;
+    transform: translateY(28px);
+    transition-property: opacity, transform;
+    transition-duration: 0.16s;
+    transition-timing-function: ease-out;
+}
+/* world-blur only while open, so a closing card leaves no blurred rectangle behind */
+.dm-root.show .dm {
+    opacity: 1;
+    transform: translateY(0px);
+    world-blur: gaussian(8.0);
+}
+
+.fill { width: fill-parent-flow(1.0); height: 1px; }
+
+/* ------------------------------------------------------------------ header */
+
+.dm-head {
+    width: 100%;
+    height: 48px;
+    flow-children: right;
+    padding: 0px 16px 0px 16px;
+    border-bottom: 1px solid #ffffff0f;
+}
+.dm-title {
+    width: fit-children;
+    vertical-align: center;
+    font-family: Stratum2 Medium Condensed;
+    font-size: 19px;
+    font-weight: bold;
+    letter-spacing: 1.8px;
+    color: #ffffff;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.dm-tag {
+    width: fit-children;
+    vertical-align: center;
+    margin-left: 12px;
+    font-family: Stratum2 Mono;
+    font-size: 11px;
+    color: #61686f;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.dm-intro {
+    width: 100%;
+    height: 30px;
+    padding: 12px 16px 0px 16px;
+}
+.dm-in {
+    width: 100%;
+    font-family: Stratum2 Regular;
+    font-size: 13px;
+    color: #9aa2ac;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------------ body */
+
+/* 16px left, 13px right: the 3px edge is inside the card's 760px, so 728 is left for the content. */
+.dm-body {
+    width: 100%;
+    height: 394px;
+    padding: 12px 13px 14px 16px;
+}
+
+.dm-lo {
+    width: 100%;
+    height: 100%;
+    flow-children: down;
+}
+.dm.arenas .dm-lo { visibility: collapse; }
+
+.dm-ar {
+    visibility: collapse;
+    width: 100%;
+    height: 100%;
+}
+.dm.arenas .dm-ar { visibility: visible; }
+
+/* ------------------------------------------------------------------ rounds: one row of toggles */
+
+.dm-sec-head {
+    width: 100%;
+    height: 18px;
+    flow-children: right;
+}
+.dm-sec-t {
+    width: fit-children;
+    vertical-align: center;
+    font-family: Stratum2 Mono;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1.4px;
+    color: #8b939c;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.dm.f-rounds .dm-sec-t { color: #f0a531; }
+.dm-sec-hint {
+    width: fit-children;
+    vertical-align: center;
+    font-family: Stratum2 Regular;
+    font-size: 12px;
+    color: #6b737c;
+    white-space: nowrap;
+}
+
+.dm-rounds {
+    width: 100%;
+    height: 86px;
+    margin-top: 8px;
+    flow-children: right;
+}
+
+/* Panels never wrap, so the row is as many tiles as there are round types and the plugin names the count */
+.dm-r {
+    width: 116.3px;
+    height: 86px;
+    margin-left: 6px;
+    background-color: #ffffff07;
+    transition-property: background-color;
+    transition-duration: 0.2s;
+}
+.dm-r:first-child { margin-left: 0px; }
+.dm-rounds.n1 .dm-r { width: 728px; }
+.dm-rounds.n2 .dm-r { width: 361px; }
+.dm-rounds.n3 .dm-r { width: 238.6px; }
+.dm-rounds.n4 .dm-r { width: 177.5px; }
+.dm-rounds.n5 .dm-r { width: 140.8px; }
+.dm-rounds.n6 .dm-r { width: 116.3px; }
+
+.dm-r-in {
+    width: 100%;
+    height: 100%;
+    flow-children: down;
+    overflow: noclip;
+    padding: 9px 10px 8px 10px;
+}
+
+/* The weapon the player would hold in that duel. A 32px box and the icon inside it sized to its own artwork. */
+.dm-r-art {
+    width: 100%;
+    height: 32px;
+    opacity: 0.38;
+    transform: translateY(0px);
+    transition-property: opacity, transform;
+    transition-duration: 0.2s;
+}
+.dm-r-img {
+    width: 26px;
+    height: 26px;
+    horizontal-align: center;
+    vertical-align: center;
+    background-image: url("s2r://panorama/images/icons/ui/crosshair.vsvg");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-texture-size: 52px 52px;
+    wash-color: #aeb5bd;
+    transition-property: wash-color;
+    transition-duration: 0.2s;
+}
+
+.dm-r-low {
+    width: 100%;
+    height: 17px;
+    margin-top: 4px;
+    flow-children: right;
+}
+.dm-r-name {
+    width: fill-parent-flow(1.0);
+    vertical-align: center;
+    font-family: Stratum2 Medium Condensed;
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 0.6px;
+    color: #9aa2ac;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.dm-r-pill {
+    width: fit-children;
+    vertical-align: center;
+    margin-left: 6px;
+    padding: 2px 6px 1px 6px;
+    font-family: Stratum2 Mono;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.dm-r-yes { visibility: collapse; background-color: #4caf6d; color: #0d1117; }
+.dm-r-no { background-color: #ffffff12; color: #8b939c; }
+
+/* What the duel hands out: "AK-47 + Desert Eagle" */
+.dm-r-kit {
+    width: 100%;
+    margin-top: 2px;
+    font-family: Stratum2 Regular;
+    font-size: 11px;
+    color: #6b737c;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* A 2px panel for the edge, not an inset box-shadow: gold on hover, green while the round is on */
+.dm-r-edge {
+    width: 2px;
+    height: 100%;
+    horizontal-align: left;
+    background-color: #f0a531;
+    opacity: 0;
+    transition-property: opacity, background-color;
+    transition-duration: 0.2s;
+}
+
+.dm-r:hover { background-color: #f0a5311a; }
+.dm-r:hover .dm-r-edge { opacity: 1; }
+.dm-r:hover .dm-r-art { opacity: 0.7; transform: translateY(-1px); }
+
+.dm-r.on { background-color: #4caf6d12; }
+.dm-r.on .dm-r-art { opacity: 1; }
+.dm-r.on .dm-r-img { wash-color: #e7eaee; }
+.dm-r.on .dm-r-name { color: #ffffff; }
+.dm-r.on .dm-r-kit { color: #aeb5bd; }
+.dm-r.on .dm-r-yes { visibility: visible; }
+.dm-r.on .dm-r-no { visibility: collapse; }
+.dm-r.on .dm-r-edge { opacity: 1; background-color: #4caf6d; }
+.dm-r.on:hover { background-color: #4caf6d1f; }
+.dm-r.on:hover .dm-r-art { opacity: 1; }
+.dm-r.on:hover .dm-r-img { wash-color: #ffffff; }
+
+/* ------------------------------------------------------------------ rifle and pistol columns */
+
+.dm-cols {
+    width: 100%;
+    height: 242px;
+    margin-top: 14px;
+    flow-children: right;
+}
+
+/* 358 - 20 padding = 338 = 4 x 80 + 3 x 6 */
+.dm-col {
+    width: 358px;
+    height: 100%;
+    flow-children: down;
+    padding: 10px 10px 10px 10px;
+    background-color: #ffffff04;
+    transition-property: background-color;
+    transition-duration: 0.2s;
+}
+.dm-col-pistol { margin-left: 12px; }
+.dm.f-rifle .dm-col-rifle, .dm.f-pistol .dm-col-pistol { background-color: #f0a5310a; }
+
+.dm-col-head {
+    width: 100%;
+    height: 20px;
+    flow-children: right;
+}
+.dm-col-t {
+    width: fill-parent-flow(1.0);
+    vertical-align: center;
+    font-family: Stratum2 Medium Condensed;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 1.2px;
+    color: #ffffff;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.dm.f-rifle .dm-col-rifle .dm-col-t, .dm.f-pistol .dm-col-pistol .dm-col-t { color: #f0a531; }
+.dm-col-sk {
+    width: fit-children;
+    vertical-align: center;
+    margin-right: 6px;
+    font-family: Stratum2 Mono;
+    font-size: 9px;
+    letter-spacing: 1.2px;
+    color: #61686f;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.dm-col-sv {
+    width: fit-children;
+    vertical-align: center;
+    font-family: Stratum2 Medium Condensed;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 0.6px;
+    color: #f0a531;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.dm-col.nosave .dm-col-sv { color: #8b939c; }
+
+/* "Used in" and the round types the choice counts in; clipped rather than squished with many of them */
+.dm-col-use {
+    width: 100%;
+    height: 18px;
+    margin-top: 6px;
+    flow-children: right;
+    overflow: clip;
+}
+.dm-use-k {
+    width: fit-children;
+    vertical-align: center;
+    margin-right: 8px;
+    font-family: Stratum2 Mono;
+    font-size: 9px;
+    letter-spacing: 1.2px;
+    color: #61686f;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.dm-use {
+    width: fit-children;
+    vertical-align: center;
+    margin-right: 4px;
+    padding: 3px 6px 2px 6px;
+    font-family: Stratum2 Mono;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 0.6px;
+    color: #d7dce1;
+    background-color: #ffffff12;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.dm-use-none {
+    visibility: collapse;
+    width: fit-children;
+    vertical-align: center;
+    font-family: Stratum2 Regular;
+    font-size: 12px;
+    color: #8b939c;
+    white-space: nowrap;
+}
+.dm-col.unused .dm-use-none { visibility: visible; }
+/* Still clickable (the choice is saved all the same), just quieter: no round type here hands it out */
+.dm-col.unused .dm-grid { opacity: 0.7; }
+
+.dm-grid {
+    width: 100%;
+    height: 168px;
+    margin-top: 10px;
+    flow-children: down;
+}
+.dm-row {
+    width: 100%;
+    height: 52px;
+    margin-top: 6px;
+    flow-children: right;
+}
+.dm-row:first-child { margin-top: 0px; }
+
+/* ------------------------------------------------------------------ a weapon tile */
+
+.dm-w {
+    width: 80px;
+    height: 52px;
+    margin-left: 6px;
+    background-color: #ffffff07;
+    transition-property: background-color;
+    transition-duration: 0.2s;
+}
+.dm-w:first-child { margin-left: 0px; }
+
+.dm-w-in {
+    width: 100%;
+    height: 100%;
+    flow-children: down;
+    padding: 7px 3px 0px 3px;
+}
+.dm-w-art {
+    width: 100%;
+    height: 22px;
+}
+.dm-w-img {
+    width: 22px;
+    height: 22px;
+    horizontal-align: center;
+    vertical-align: center;
+    background-image: url("s2r://panorama/images/icons/ui/crosshair.vsvg");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-texture-size: 44px 44px;
+    wash-color: #aeb5bd;
+    transition-property: wash-color;
+    transition-duration: 0.2s;
+}
+.dm-w-n {
+    width: 100%;
+    margin-top: 6px;
+    font-family: Stratum2 Mono;
+    font-size: 9px;
+    letter-spacing: 0px;
+    color: #9aa2ac;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.dm-w-edge {
+    width: 2px;
+    height: 100%;
+    horizontal-align: left;
+    background-color: #f0a531;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.2s;
+}
+
+.dm-w:hover { background-color: #f0a5311a; }
+.dm-w:hover .dm-w-img { wash-color: #ffffff; }
+.dm-w:hover .dm-w-n { color: #e7eaee; }
+.dm-w:hover .dm-w-edge { opacity: 1; }
+
+/* The saved one: gold edge, gold name, the art in white */
+.dm-w.saved { background-color: #f0a53124; }
+.dm-w.saved .dm-w-img { wash-color: #ffffff; }
+.dm-w.saved .dm-w-n { color: #f0a531; font-weight: bold; }
+.dm-w.saved .dm-w-edge { opacity: 1; }
+
+/* ------------------------------------------------------------------ arenas (admin) */
+
+.dm-ar-grid {
+    width: 100%;
+    flow-children: down;
+}
+.dm-ar-row {
+    width: 100%;
+    height: 80px;
+    margin-top: 6px;
+    flow-children: right;
+}
+.dm-ar-row:first-child { margin-top: 0px; }
+
+/* 4 x 177.5 + 3 x 6 = 728 */
+.dm-a {
+    width: 177.5px;
+    height: 80px;
+    margin-left: 6px;
+    flow-children: down;
+    padding: 10px 12px 10px 12px;
+    background-color: #ffffff07;
+}
+.dm-a:first-child { margin-left: 0px; }
+.dm-a-n {
+    width: 100%;
+    font-family: Stratum2 Medium Condensed;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 0.6px;
+    color: #ffffff;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.dm-a-k {
+    width: 100%;
+    margin-top: 2px;
+    font-family: Stratum2 Mono;
+    font-size: 9px;
+    letter-spacing: 1.2px;
+    color: #61686f;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.dm-a-btns {
+    width: 100%;
+    height: 24px;
+    margin-top: 8px;
+    flow-children: right;
+}
+/* 153.5 inside the padding = 2 x 73.5 + 6 */
+.dm-a-b {
+    width: 73.5px;
+    height: 24px;
+    background-color: #ffffff0d;
+    transition-property: background-color;
+    transition-duration: 0.2s;
+}
+.dm-a-b2 { margin-left: 6px; }
+.dm-a-b:hover { background-color: #f0a531; }
+.dm-a-bl {
+    width: 100%;
+    vertical-align: center;
+    font-family: Stratum2 Mono;
+    font-size: 9.5px;
+    font-weight: bold;
+    letter-spacing: 0.6px;
+    color: #d7dce1;
+    text-align: center;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.dm-a-b:hover .dm-a-bl { color: #14110a; }
+
+.dm-ar-empty {
+    visibility: collapse;
+    horizontal-align: center;
+    vertical-align: center;
+    font-family: Stratum2 Regular;
+    font-size: 14px;
+    color: #8b939c;
+    white-space: nowrap;
+}
+.dm.noarenas .dm-ar-empty { visibility: visible; }
+
+/* ------------------------------------------------------------------ footer */
+
+/* Everything in it is vertical-align: center, so a label taller than expected still fits */
+.dm-foot {
+    width: 100%;
+    height: 35px;
+    flow-children: right;
+    padding: 0px 16px 2px 16px;
+    border-top: 1px solid #ffffff0f;
+}
+.dm-cmds {
+    width: fill-parent-flow(1.0);
+    vertical-align: center;
+    flow-children: right;
+    overflow: clip;
+}
+.dm-cmd {
+    width: fit-children;
+    flow-children: right;
+    vertical-align: center;
+    margin-right: 10px;
+}
+.dm-cmd-s, .dm-cmd-n, .dm-cmd-tail, .dm-pg-t, .dm-pg-l {
+    vertical-align: center;
+    font-family: Stratum2 Mono;
+    font-size: 10px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.dm-cmd-s { color: #f0a531; }
+.dm-cmd-n { color: #6b737c; }
+.dm-cmd-tail { color: #4b525a; }
+
+.dm-pager {
+    visibility: collapse;
+    width: fit-children;
+    flow-children: right;
+    vertical-align: center;
+    margin-left: 12px;
+}
+.dm.paged .dm-pager { visibility: visible; }
+.dm-pg {
+    width: 20px;
+    height: 16px;
+    vertical-align: center;
+    background-color: #ffffff0a;
+    transition-property: background-color;
+    transition-duration: 0.2s;
+}
+.dm-pg:hover { background-color: #f0a531; }
+.dm-pg-l { horizontal-align: center; color: #aeb5bd; }
+.dm-pg:hover .dm-pg-l { color: #14110a; }
+.dm-pg-t { margin: 0px 8px 0px 8px; color: #aeb5bd; }
+
+/* ------------------------------------------------------------------ weapon art */
+
+/* weapon tile: a 74x22 box (80px tile, 3px padding each side) */
+.dm-w.w-ak47 .dm-w-img { width: 61px; height: 22px; background-texture-size: 122px 44px; }
+.dm-w.w-m4a1_silencer .dm-w-img { width: 66.5px; height: 22px; background-texture-size: 133px 44px; }
+.dm-w.w-m4a1 .dm-w-img { width: 54px; height: 22px; background-texture-size: 108px 44px; }
+.dm-w.w-galilar .dm-w-img { width: 62px; height: 22px; background-texture-size: 124px 44px; }
+.dm-w.w-famas .dm-w-img { width: 53.5px; height: 22px; background-texture-size: 107px 44px; }
+.dm-w.w-sg556 .dm-w-img { width: 61.5px; height: 22px; background-texture-size: 123px 44px; }
+.dm-w.w-aug .dm-w-img { width: 52px; height: 22px; background-texture-size: 104px 44px; }
+.dm-w.w-awp .dm-w-img { width: 74px; height: 21.5px; background-texture-size: 148px 43px; }
+.dm-w.w-ssg08 .dm-w-img { width: 68.5px; height: 22px; background-texture-size: 137px 44px; }
+.dm-w.w-deagle .dm-w-img { width: 35px; height: 22px; background-texture-size: 70px 44px; }
+.dm-w.w-glock .dm-w-img { width: 31px; height: 22px; background-texture-size: 62px 44px; }
+.dm-w.w-usp_silencer .dm-w-img { width: 47.5px; height: 22px; background-texture-size: 95px 44px; }
+.dm-w.w-hkp2000 .dm-w-img { width: 22px; height: 22px; background-texture-size: 44px 44px; }
+.dm-w.w-elite .dm-w-img { width: 47px; height: 22px; background-texture-size: 94px 44px; }
+.dm-w.w-tec9 .dm-w-img { width: 36px; height: 22px; background-texture-size: 72px 44px; }
+.dm-w.w-p250 .dm-w-img { width: 26px; height: 22px; background-texture-size: 52px 44px; }
+.dm-w.w-cz75a .dm-w-img { width: 33px; height: 22px; background-texture-size: 66px 44px; }
+.dm-w.w-fiveseven .dm-w-img { width: 27px; height: 22px; background-texture-size: 54px 44px; }
+.dm-w.w-revolver .dm-w-img { width: 36px; height: 22px; background-texture-size: 72px 44px; }
+
+/* round tile, five or six of them: a 96x26 box (116px tile, 10px padding each side) */
+.dm-r.w-ak47 .dm-r-img { width: 72px; height: 26px; background-texture-size: 144px 52px; }
+.dm-r.w-m4a1_silencer .dm-r-img { width: 78.5px; height: 26px; background-texture-size: 157px 52px; }
+.dm-r.w-m4a1 .dm-r-img { width: 64px; height: 26px; background-texture-size: 128px 52px; }
+.dm-r.w-galilar .dm-r-img { width: 73.5px; height: 26px; background-texture-size: 147px 52px; }
+.dm-r.w-famas .dm-r-img { width: 63px; height: 26px; background-texture-size: 126px 52px; }
+.dm-r.w-sg556 .dm-r-img { width: 73px; height: 26px; background-texture-size: 146px 52px; }
+.dm-r.w-aug .dm-r-img { width: 61.5px; height: 26px; background-texture-size: 123px 52px; }
+.dm-r.w-awp .dm-r-img { width: 89px; height: 26px; background-texture-size: 178px 52px; }
+.dm-r.w-ssg08 .dm-r-img { width: 81px; height: 26px; background-texture-size: 162px 52px; }
+.dm-r.w-deagle .dm-r-img { width: 41px; height: 26px; background-texture-size: 82px 52px; }
+.dm-r.w-glock .dm-r-img { width: 36.5px; height: 26px; background-texture-size: 73px 52px; }
+.dm-r.w-usp_silencer .dm-r-img { width: 56.5px; height: 26px; background-texture-size: 113px 52px; }
+.dm-r.w-hkp2000 .dm-r-img { width: 26px; height: 26px; background-texture-size: 52px 52px; }
+.dm-r.w-elite .dm-r-img { width: 55.5px; height: 26px; background-texture-size: 111px 52px; }
+.dm-r.w-tec9 .dm-r-img { width: 42.5px; height: 26px; background-texture-size: 85px 52px; }
+.dm-r.w-p250 .dm-r-img { width: 30.5px; height: 26px; background-texture-size: 61px 52px; }
+.dm-r.w-cz75a .dm-r-img { width: 39px; height: 26px; background-texture-size: 78px 52px; }
+.dm-r.w-fiveseven .dm-r-img { width: 31.5px; height: 26px; background-texture-size: 63px 52px; }
+.dm-r.w-revolver .dm-r-img { width: 42.5px; height: 26px; background-texture-size: 85px 52px; }
+
+/* round tile, four or fewer (big): a 157x32 box (177.5px tile at four) */
+.dm-rounds.big .dm-r.w-ak47 .dm-r-img { width: 88.5px; height: 32px; background-texture-size: 177px 64px; }
+.dm-rounds.big .dm-r.w-m4a1_silencer .dm-r-img { width: 96.5px; height: 32px; background-texture-size: 193px 64px; }
+.dm-rounds.big .dm-r.w-m4a1 .dm-r-img { width: 78.5px; height: 32px; background-texture-size: 157px 64px; }
+.dm-rounds.big .dm-r.w-galilar .dm-r-img { width: 90px; height: 32px; background-texture-size: 180px 64px; }
+.dm-rounds.big .dm-r.w-famas .dm-r-img { width: 78px; height: 32px; background-texture-size: 156px 64px; }
+.dm-rounds.big .dm-r.w-sg556 .dm-r-img { width: 90px; height: 32px; background-texture-size: 180px 64px; }
+.dm-rounds.big .dm-r.w-aug .dm-r-img { width: 76px; height: 32px; background-texture-size: 152px 64px; }
+.dm-rounds.big .dm-r.w-awp .dm-r-img { width: 109.5px; height: 32px; background-texture-size: 219px 64px; }
+.dm-rounds.big .dm-r.w-ssg08 .dm-r-img { width: 99.5px; height: 32px; background-texture-size: 199px 64px; }
+.dm-rounds.big .dm-r.w-deagle .dm-r-img { width: 50.5px; height: 32px; background-texture-size: 101px 64px; }
+.dm-rounds.big .dm-r.w-glock .dm-r-img { width: 45px; height: 32px; background-texture-size: 90px 64px; }
+.dm-rounds.big .dm-r.w-usp_silencer .dm-r-img { width: 69.5px; height: 32px; background-texture-size: 139px 64px; }
+.dm-rounds.big .dm-r.w-hkp2000 .dm-r-img { width: 32px; height: 32px; background-texture-size: 64px 64px; }
+.dm-rounds.big .dm-r.w-elite .dm-r-img { width: 68.5px; height: 32px; background-texture-size: 137px 64px; }
+.dm-rounds.big .dm-r.w-tec9 .dm-r-img { width: 52.5px; height: 32px; background-texture-size: 105px 64px; }
+.dm-rounds.big .dm-r.w-p250 .dm-r-img { width: 38px; height: 32px; background-texture-size: 76px 64px; }
+.dm-rounds.big .dm-r.w-cz75a .dm-r-img { width: 48px; height: 32px; background-texture-size: 96px 64px; }
+.dm-rounds.big .dm-r.w-fiveseven .dm-r-img { width: 39px; height: 32px; background-texture-size: 78px 64px; }
+.dm-rounds.big .dm-r.w-revolver .dm-r-img { width: 52.5px; height: 32px; background-texture-size: 105px 64px; }
+
+/* the pictures, once per weapon */
+.dm-r.w-ak47 .dm-r-img, .dm-w.w-ak47 .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/ak47.vsvg"); }
+.dm-r.w-m4a1_silencer .dm-r-img, .dm-w.w-m4a1_silencer .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/m4a1_silencer.vsvg"); }
+.dm-r.w-m4a1 .dm-r-img, .dm-w.w-m4a1 .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/m4a1.vsvg"); }
+.dm-r.w-galilar .dm-r-img, .dm-w.w-galilar .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/galilar.vsvg"); }
+.dm-r.w-famas .dm-r-img, .dm-w.w-famas .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/famas.vsvg"); }
+.dm-r.w-sg556 .dm-r-img, .dm-w.w-sg556 .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/sg556.vsvg"); }
+.dm-r.w-aug .dm-r-img, .dm-w.w-aug .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/aug.vsvg"); }
+.dm-r.w-awp .dm-r-img, .dm-w.w-awp .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/awp.vsvg"); }
+.dm-r.w-ssg08 .dm-r-img, .dm-w.w-ssg08 .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/ssg08.vsvg"); }
+.dm-r.w-deagle .dm-r-img, .dm-w.w-deagle .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/deagle.vsvg"); }
+.dm-r.w-glock .dm-r-img, .dm-w.w-glock .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/glock.vsvg"); }
+.dm-r.w-usp_silencer .dm-r-img, .dm-w.w-usp_silencer .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/usp_silencer.vsvg"); }
+.dm-r.w-hkp2000 .dm-r-img, .dm-w.w-hkp2000 .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/hkp2000.vsvg"); }
+.dm-r.w-elite .dm-r-img, .dm-w.w-elite .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/elite.vsvg"); }
+.dm-r.w-tec9 .dm-r-img, .dm-w.w-tec9 .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/tec9.vsvg"); }
+.dm-r.w-p250 .dm-r-img, .dm-w.w-p250 .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/p250.vsvg"); }
+.dm-r.w-cz75a .dm-r-img, .dm-w.w-cz75a .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/cz75a.vsvg"); }
+.dm-r.w-fiveseven .dm-r-img, .dm-w.w-fiveseven .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/fiveseven.vsvg"); }
+.dm-r.w-revolver .dm-r-img, .dm-w.w-revolver .dm-w-img { background-image: url("s2r://panorama/images/icons/equipment/revolver.vsvg"); }
