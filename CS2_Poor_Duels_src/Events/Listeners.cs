@@ -115,6 +115,7 @@ namespace CS2_Poor_Duels
         {
             // The clock starts over on every map: cards and toasts from the last one go
             _plugin.HudManager?.OnMapStart();
+            _plugin.MenuManager?.OnMapStart();
 
             _plugin.AddTimer(0.2f, () =>
             {

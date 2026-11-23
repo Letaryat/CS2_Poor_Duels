@@ -328,6 +328,7 @@ namespace CS2_Poor_Duels
             if (_plugin.QueueManager!._WaitingQueue.Contains(player)) _plugin.QueueManager._WaitingQueue.Remove(player);
             _plugin.QueueManager.RemoveWaitingPlayer(player);
             _plugin.HudManager?.OnDisconnect(player.Slot);
+            _plugin.MenuManager?.OnDisconnect(player.Slot);
 
             if (duel == null)
             {

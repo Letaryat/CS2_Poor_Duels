@@ -14,7 +14,8 @@ namespace CS2_Poor_Duels.Hud
     /// (EnemyLeft), no free arena (ArenaNotFound, and the AFK line right after it), and the optional result line.</item>
     /// <item>Toasts: AFK, NotAFK, RifleChanged, PistolChanged, RoundPreferenceEnabled / Disabled (with the round
     /// chips), and the refused team switch, which today is only a sound.</item>
-    /// <item>Unchanged: the menus, the AFK / WAITING clan tags, the admin tools, and every sound.</item>
+    /// <item>Unchanged: the AFK / WAITING clan tags, the admin tools, and every sound. The menus are a HUD of their
+    /// own (<see cref="DuelsMenu"/>) and do not depend on Hud.Enabled.</item>
     /// </list>
     ///
     /// <para><b>Every method that replaces a line returns whether it was shown.</b> False - Hud.Enabled off, the
@@ -499,7 +500,7 @@ namespace CS2_Poor_Duels.Hud
         }
 
         /// <summary>weapon_m4a1_silencer -> m4a1_silencer; <see cref="DuelsHud.NoWeapon"/> when the layout has no icon.</summary>
-        private static string Icon(string? weapon)
+        internal static string Icon(string? weapon)
         {
             if (string.IsNullOrWhiteSpace(weapon))
                 return DuelsHud.NoWeapon;
@@ -508,7 +509,7 @@ namespace CS2_Poor_Duels.Hud
             return DuelsHud.Weapons.Contains(name) ? name : DuelsHud.NoWeapon;
         }
 
-        private static string WeaponName(string? weapon)
+        internal static string WeaponName(string? weapon)
         {
             if (string.IsNullOrWhiteSpace(weapon))
                 return string.Empty;
@@ -546,7 +547,7 @@ namespace CS2_Poor_Duels.Hud
         }
 
         /// <summary>Drops chat color codes and other control characters: a Label would draw them as boxes.</summary>
-        private static string Clean(string text)
+        internal static string Clean(string text)
         {
             if (text.All(c => !char.IsControl(c)))
                 return text.Trim();

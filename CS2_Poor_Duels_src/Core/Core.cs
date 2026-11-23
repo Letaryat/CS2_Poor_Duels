@@ -65,6 +65,9 @@ public partial class CS2_Poor_DuelsPlugin : BasePlugin, IPluginConfig<DuelsConfi
         // The info card and the toasts. Off (Hud.Enabled false) or failing to start, every old line stays
         HudManager.Load();
 
+        // The menus (!guns, !rounds, css_dtestarenas): a HUD of their own, whatever Hud.Enabled says
+        MenuManager.Load();
+
         PluginExtensions!.DebugLogger("Plugin loaded!");
     }
 
@@ -79,6 +82,9 @@ public partial class CS2_Poor_DuelsPlugin : BasePlugin, IPluginConfig<DuelsConfi
 
         HudManager?.Dispose();
         HudManager = null;
+
+        MenuManager?.Dispose();
+        MenuManager = null;
 
         Task.Run(PlayerManager!.SaveAllPlayersAsync).Wait();
     }

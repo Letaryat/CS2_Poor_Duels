@@ -196,6 +196,8 @@ namespace CS2_Poor_Duels
             }
             PluginExtensions.PlaySoundToClient(player, _plugin.Config.soundsPath.saveWeaponSound);
 
+            // An open !guns menu moves its "saved" mark (a pick there, or a buy)
+            _plugin.MenuManager?.Refresh(player);
         }
 
         /// <param name="fromBuy">The player bought the round's weapon outside that duel (OnWeaponCanAcquire). Only
@@ -231,6 +233,9 @@ namespace CS2_Poor_Duels
                     PluginExtensions.SendChatMessage(_plugin, player, $"RoundPreferenceEnabled", [_plugin.Localizer["Enabled"], name.ToUpper()]);
                 PluginExtensions.PlaySoundToClient(player, _plugin.Config.soundsPath.enabledSound);
             }
+
+            // An open !rounds menu flips its toggle (a click there, or buying an AWP / Scout)
+            _plugin.MenuManager?.Refresh(player);
         }
 
         public bool IfPlayerHaveRoundEnabled(CCSPlayerController p, int roundType)

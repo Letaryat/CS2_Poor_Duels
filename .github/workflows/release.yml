@@ -43,7 +43,7 @@ jobs:
 
       # One folder, laid out exactly as it sits under addons/counterstrikesharp/plugins/.
       # An allowlist on purpose: CounterStrikeSharp's own dlls must never ship next to the plugin, and
-      # no pdb or server config goes in. CS2MenuManager.dll and CS2_Poor_Duels_Api.dll are loaded from
+      # no pdb or server config goes in. CS2_Poor_Duels_Api.dll is loaded from
       # addons/counterstrikesharp/shared/ on the server - a second copy of the API next to the plugin
       # means two types and the capability cast fails. maps/ holds the custom arena spawns the plugin
       # reads from its own folder. PanoramaManager.dll is the HUD library, loaded from the plugin's
@@ -75,11 +75,13 @@ jobs:
           test -f "out/$PLUGIN/lang/en.json"
           test -f out/workshop/panorama/layout/custom_game/duels_hud.xml
           test -f out/workshop/panorama/styles/custom_game/duels_hud.css
+          test -f out/workshop/panorama/layout/custom_game/duels_menu.xml
+          test -f out/workshop/panorama/styles/custom_game/duels_menu.css
           test -f out/workshop/panorama/styles/custom_game/hud_shared.css
 
           # Stage only copies what it lists. A new package would build fine and then fail to load on
           # the server, so refuse to go on until its dlls are added to Stage.
-          extra=$(grep -oE '<PackageReference Include="[^"]+"' "$PROJECT" | cut -d'"' -f2 | grep -vxE 'CounterStrikeSharp\.API|CS2MenuManager|Dapper|MySqlConnector|PanoramaManager' || true)
+          extra=$(grep -oE '<PackageReference Include="[^"]+"' "$PROJECT" | cut -d'"' -f2 | grep -vxE 'CounterStrikeSharp\.API|Dapper|MySqlConnector|PanoramaManager' || true)
           if [ -n "$extra" ]; then
             echo "::error::Unhandled PackageReference: $extra - add its dlls to the Stage step."
             exit 1
